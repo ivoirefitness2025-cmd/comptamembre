@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FIT TRACK - Version Mobile</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.2/css/phosphor.min.css" rel="stylesheet">
+    <style>
+        /* Optimisation Mobile */
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+        input, select, textarea { font-size: 16px !important; } /* Stop zoom iPhone */
+        
+        /* Styles spécifiques */
+        .modal-enter { transform: translateY(100%); transition: transform 0.3s ease-out; }
+        .modal-enter-active { transform: translateY(0); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Zone d'impression cachée -->
+    <div id="print-area" class="hidden"></div>
+
+    <!-- Conteneur Principal -->
+    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+        <!-- VUE CONNEXION -->
+        <div id="login-view" class="absolute inset-0 z-50 bg-white flex flex-col justify-center p-6 overflow-y-auto">
+            <div class="w-full max-w-sm mx-auto">
+                <div class="flex items-center justify-center mb-8">
+                    <div class="bg-blue-600 p-3 rounded-full">
+                        <i class="ph-bold ph-barbell text-4xl text-white"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold ml-3 text-slate-800">FIT TRACK</h1>
+                </div>
+                
+                <div class="bg-slate-50 p-1 rounded-lg flex mb-8">
+                    <button id="manager-tab" class="flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all">Gérant</button>
+                    <button id="consultation-tab" class="flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all">Proprio</button>
+                    <button id="kiosk-tab" class="flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all">Kiosque</button>
+                </div>
+
+                <div id="manager-login-form" class="space-y-4">
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1">Identifiant</label>
+                        <input type="text" id="email-input" placeholder="admin" class="w-full p-4 rounded-xl bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 uppercase ml-1">Mot de passe</label>
+                        <input type="password" id="password-input" placeholder="admin" class="w-full p-4 rounded-xl bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all">
+                    </div>
+                    <button id="login-button" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-all text-lg">
+                        Se Connecter
+                    </button>
+                </div>
+
+                <div id="consultation-login-form" class="space-y-4 hidden">
+                    <input type="password" id="consultation-pin-input" placeholder="Code PIN (5008)" class="w-full p-4 rounded-xl bg-slate-100 text-center text-2xl tracking-widest" inputmode="numeric" maxlength="4">
+                    <button id="consultation-login-button" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">
+                        Entrer
+                    </button>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button id="import-data-login-btn" class="text-sm text-slate-400 underline">Restaurer sauvegarde</button>
+                    <input type="file" id="file-import-input-login" accept=".json" class="hidden">
+                </div>
+            </div>
+        </div>
+
+        <!-- VUE PRINCIPALE -->
+        <div id="main-view" class="hidden flex-1 flex flex-col h-full">
+            
+            <!-- Header -->
+            <header class="bg-white px-4 py-3 flex justify-between items-center border-b z-20 shadow-sm shrink-0">
+                <h1 id="app-title-main" class="text-lg font-extrabold text-blue-900 truncate max-w-[200px]">FIT TRACK</h1>
+                <div class="flex items-center gap-3">
+                    <span id="user-role-badge" class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full uppercase tracking-wide">Gérant</span>
+                    <button id="logout-button" class="text-slate-400 hover:text-red-500"><i class="ph-bold ph-sign-out text-2xl"></i></button>
+                </div>
+            </header>
+
+            <!-- Contenu Défilant -->
+            <main class="flex-1 overflow-y-auto bg-slate-50 pb-24 relative" id="main-content">
+                
+                <!-- Section DASHBOARD -->
+                <div id="dashboard-section" class="p-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                            <i class="ph-fill ph-users text-2xl text-blue-500 mb-1"></i>
+                            <p class="text-slate-500 text-xs font-bold uppercase">Actifs</p>
+                            <p id="db-active-members" class="text-2xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                            <i class="ph-fill ph-warning-circle text-2xl text-orange-500 mb-1"></i>
+                            <p class="text-slate-500 text-xs font-bold uppercase">Expire Bientôt</p>
+                            <p id="db-expiring-soon" class="text-2xl font-black text-slate-800">0</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg shadow-blue-200">
+                        <p class="text-blue-100 text-xs font-bold uppercase mb-1">Chiffre d'affaires (Mois)</p>
+                        <p id="db-revenue-month" class="text-3xl font-black">0 FCFA</p>
+                        <div class="mt-4 flex justify-between items-end border-t border-white/20 pt-3">
+                            <div>
+                                <p class="text-blue-200 text-[10px] uppercase">Charges</p>
+                                <p id="db-charges-month" class="font-bold text-red-200">0 FCFA</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-blue-200 text-[10px] uppercase">Net</p>
+                                <p id="db-net-profit-month" class="font-bold text-emerald-300 text-lg">0 FCFA</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="reset-app-button" class="w-full p-3 rounded-xl border border-red-200 text-red-500 font-bold text-sm flex items-center justify-center mt-8">
+                        <i class="ph-bold ph-trash mr-2"></i> Réinitialiser Données
+                    </button>
+                </div>
+
+                <!-- Section MEMBRES -->
+                <div id="members-section" class="hidden p-4">
+                    <div class="sticky top-0 bg-slate-50 pb-2 z-10 space-y-3">
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="search-input" placeholder="Recherche..." class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <button id="scan-qr-button" class="bg-slate-800 text-white w-12 rounded-xl shadow-sm flex items-center justify-center"><i class="ph-bold ph-qr-code text-2xl"></i></button>
+                        </div>
+                        
+                        <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                            <button data-filter="all" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white whitespace-nowrap">Tous</button>
+                            <button data-filter="active" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Actifs</button>
+                            <button data-filter="expiring" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Fin Bientôt</button>
+                            <button data-filter="expired" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Expirés</button>
+                        </div>
+                    </div>
+
+                    <div id="member-list-container" class="space-y-3 pb-20 mt-2"></div>
+                    
+                    <div id="empty-state-members" class="hidden flex flex-col items-center justify-center py-10 text-slate-400">
+                        <i class="ph-duotone ph-users text-6xl mb-2"></i>
+                        <p>Aucun membre trouvé</p>
+                    </div>
+
+                    <!-- FAB Add Member -->
+                    <button id="add-member-button" class="fixed bottom-24 right-4 bg-blue-600 text-white w-14 h-14 rounded-full shadow-xl shadow-blue-300 flex items-center justify-center active:scale-90 transition-transform z-20">
+                        <i class="ph-bold ph-plus text-3xl"></i>
+                    </button>
+                </div>
+
+                <!-- Section FINANCE -->
+                <div id="finance-section" class="hidden p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-lg">Transactions</h2>
+                        <button id="add-charge-button" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center"><i class="ph-bold ph-minus-circle mr-1"></i> Charge</button>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                         <div id="financial-history-list" class="divide-y"></div>
+                         <div id="empty-state-finance" class="hidden p-8 text-center text-slate-400">Aucune transaction</div>
+                    </div>
+                    <button id="download-report-button" class="w-full mt-6 bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center">
+                        <i class="ph-bold ph-file-csv mr-2"></i> Exporter Rapport CSV
+                    </button>
+                </div>
+
+                <!-- Section SESSIONS -->
+                <div id="sessions-section" class="hidden p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-lg">Présences</h2>
+                        <input type="date" id="session-date-filter" class="bg-white border-none rounded-lg text-sm p-2 shadow-sm font-medium">
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                         <div id="sessions-history-list" class="divide-y"></div>
+                         <div id="empty-state-sessions" class="hidden p-8 text-center text-slate-400">Aucune présence</div>
+                    </div>
+                </div>
+
+                <!-- Section OPTIONS -->
+                <div id="settings-section" class="hidden p-4 space-y-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm">
+                        <h3 class="font-bold text-lg mb-3">Configuration</h3>
+                        <div class="space-y-3">
+                             <div>
+                                <label class="text-xs font-bold text-slate-500">Nom de la salle</label>
+                                <input type="text" id="gym-name-input" class="w-full mt-1 p-3 bg-slate-50 rounded-xl border-none">
+                             </div>
+                             <button id="save-settings-button" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl">Enregistrer</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 p-5 rounded-2xl border border-green-100">
+                        <h3 class="font-bold text-green-800 text-lg mb-2">Sauvegarde Données</h3>
+                        <p class="text-xs text-green-700 mb-4">Important : Sauvegardez régulièrement vos données.</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="export-json-btn" class="bg-green-600 text-white font-bold py-3 rounded-xl text-sm">
+                                <i class="ph-bold ph-download"></i> Sauvegarder
+                            </button>
+                            <div class="relative">
+                                <button id="import-json-btn" class="w-full bg-white text-green-700 border border-green-200 font-bold py-3 rounded-xl text-sm">
+                                    <i class="ph-bold ph-upload"></i> Restaurer
+                                </button>
+                                <input type="file" id="import-json-input" accept=".json" class="hidden">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <!-- Navigation Bottom Bar -->
+            <nav class="bg-white border-t pb-safe-bottom flex justify-around items-center h-16 shrink-0 z-30">
+                <button data-view="dashboard" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-blue-600">
+                    <i class="ph-fill ph-house text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-bold">Accueil</span>
+                </button>
+                <button data-view="members" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
+                    <i class="ph-fill ph-users text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-bold">Membres</span>
+                </button>
+                <button data-view="finance" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
+                    <i class="ph-fill ph-wallet text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-bold">Compta</span>
+                </button>
+                <button data-view="sessions" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
+                    <i class="ph-fill ph-clock text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-bold">Pointage</span>
+                </button>
+                <button data-view="settings" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
+                    <i class="ph-fill ph-gear text-2xl mb-0.5"></i>
+                    <span class="text-[10px] font-bold">Options</span>
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Modal Ajout/Edit Membre -->
+    <div id="member-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
+        <div class="bg-white w-full h-[90vh] sm:h-auto sm:max-w-lg rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl transition-transform">
+            <!-- Header Modal -->
+            <div class="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0">
+                <button class="close-modal text-slate-500 font-bold text-sm flex items-center"><i class="ph-bold ph-arrow-left text-lg mr-1"></i> Retour</button>
+                <h2 class="font-bold text-lg">Fiche Client</h2>
+                <div class="w-12"></div> <!-- Spacer -->
+            </div>
+            
+            <!-- Content Modal -->
+            <div class="flex-1 overflow-y-auto p-5">
+                <form id="member-form" class="space-y-5">
+                    <input type="hidden" id="member-id">
+                    
+                    <!-- Photo -->
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="relative w-28 h-28 bg-slate-100 rounded-full overflow-hidden border-4 border-white shadow-md group">
+                            <img id="photo-preview" class="w-full h-full object-cover hidden">
+                            <div id="photo-placeholder" class="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                <i class="ph-fill ph-camera text-3xl"></i>
+                            </div>
+                            <!-- Input File avec Capture Camera -->
+                            <input type="file" id="member-photo-input" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                        </div>
+                        <p class="text-xs text-blue-600 font-bold mt-2">Appuyer pour photo</p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Identité</h3>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="member-firstname" placeholder="Prénom" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
+                            <input type="text" id="member-lastname" placeholder="Nom" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
+                        </div>
+                        <input type="tel" id="member-phone" placeholder="Téléphone" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
+                        <input type="text" id="member-address" placeholder="Lieu de résidence" class="p-3 bg-slate-50 rounded-xl border-none w-full">
+                    </div>
+
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Santé & Urgence</h3>
+                        <textarea id="member-medical" placeholder="Antécédents médicaux, allergies..." class="p-3 bg-slate-50 rounded-xl border-none w-full h-20 text-sm"></textarea>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="member-emergency-name" placeholder="Contact urgence" class="p-3 bg-slate-50 rounded-xl border-none w-full text-sm">
+                            <input type="tel" id="member-emergency-phone" placeholder="Tél urgence" class="p-3 bg-slate-50 rounded-xl border-none w-full text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Abonnement</h3>
+                         <div class="flex bg-slate-100 p-1 rounded-xl">
+                            <button type="button" id="type-subscription" class="flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all">Mois</button>
+                            <button type="button" id="type-session" class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50">Séances</button>
+                        </div>
+                        <input type="hidden" id="member-type" value="subscription">
+                        
+                        <div id="subscription-fields">
+                            <input type="number" id="subscription-duration" placeholder="Durée (mois)" class="p-3 bg-white border-2 border-blue-100 rounded-xl w-full">
+                        </div>
+                        <div id="session-fields" class="hidden">
+                            <input type="number" id="session-count" placeholder="Nombre de séances" class="p-3 bg-white border-2 border-blue-100 rounded-xl w-full">
+                        </div>
+                        
+                        <div class="pt-2">
+                            <label class="text-xs font-bold text-slate-500 ml-1">Montant Payé</label>
+                            <input type="number" id="member-amount" placeholder="0 FCFA" class="p-3 bg-green-50 border border-green-100 text-green-800 font-bold rounded-xl w-full">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer Modal -->
+            <div class="p-4 border-t bg-white shrink-0 pb-safe-bottom">
+                <button id="save-member-btn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center">
+                    <span>Enregistrer</span>
+                    <i id="btn-spinner" class="ph-bold ph-circle-notch animate-spin ml-2 hidden"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Détail Membre -->
+    <div id="view-member-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
+        <div class="bg-white w-full h-[90vh] sm:h-auto sm:max-w-md rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden">
+            <div class="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0">
+                <button id="close-view-modal" class="text-slate-500 font-bold text-sm flex items-center"><i class="ph-bold ph-arrow-left text-lg mr-1"></i> Retour</button>
+                <div class="flex gap-2">
+                    <button id="share-whatsapp-btn" class="text-green-600 bg-green-100 p-2 rounded-full"><i class="ph-fill ph-whatsapp-logo text-xl"></i></button>
+                    <button id="delete-member-btn" class="text-red-600 bg-red-100 p-2 rounded-full"><i class="ph-bold ph-trash text-xl"></i></button>
+                </div>
+            </div>
+            <div id="view-member-content" class="flex-1 overflow-y-auto p-5 space-y-6"></div>
+        </div>
+    </div>
+    
+    <!-- Modal Ajout Charge -->
+    <div id="charge-modal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold mb-4">Ajouter une Charge</h3>
+            <div class="space-y-4">
+                <input type="text" id="charge-desc-input" placeholder="Description (ex: Loyer)" class="w-full p-3 bg-slate-50 rounded-xl border-none">
+                <input type="number" id="charge-amount-input" placeholder="Montant (FCFA)" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-red-600">
+                <div class="flex gap-3 pt-2">
+                    <button id="cancel-charge-btn" class="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-slate-100">Annuler</button>
+                    <button id="confirm-charge-btn" class="flex-1 py-3 rounded-xl font-bold text-white bg-red-600">Valider</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scanner & Kiosk -->
+    <div id="kiosk-view" class="fixed inset-0 bg-slate-900 z-[100] hidden flex flex-col">
+        <div class="p-4 flex justify-between items-center">
+            <h2 class="text-white font-bold">Mode Kiosque</h2>
+            <button id="close-kiosk-button" class="text-white bg-white/20 p-2 rounded-lg"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div class="flex-1 flex flex-col items-center justify-center p-4">
+             <div id="kiosk-reader" class="w-full max-w-sm aspect-square bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-700"></div>
+             <div id="kiosk-message" class="mt-8 text-center h-24">
+                 <p class="text-2xl font-bold text-white"></p>
+                 <p class="text-lg text-slate-300"></p>
+             </div>
+        </div>
+    </div>
+
+    <div id="qr-scanner-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex flex-col p-4">
+        <div class="flex justify-end"><button id="close-scanner-button" class="text-white p-2"><i class="ph-bold ph-x text-3xl"></i></button></div>
+        <div class="flex-1 flex items-center justify-center">
+            <div id="qr-reader" class="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-white"></div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- CONFIGURATION ---
+        const DB_KEY = 'fittrack_local_mobile_v2';
+        const SUPERVISOR_PIN = "5008";
+
+        // --- STATE ---
+        let db = { members: [], payments: [], charges: [], sessions: [], config: { gymName: "FIT TRACK" } };
+        let currentUser = null; // 'manager' | 'owner'
+        let html5QrCode = null;
+        let isKioskMode = false;
+        let currentFilter = 'all';
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            checkSession();
+            setupEvents();
+            // Fix date input IOS
+            document.getElementById('session-date-filter').valueAsDate = new Date();
+        });
+
+        function loadData() {
+            const saved = localStorage.getItem(DB_KEY);
+            if (saved) {
+                try {
+                    db = JSON.parse(saved);
+                    if(!db.members) db.members = [];
+                    if(!db.payments) db.payments = [];
+                    if(!db.charges) db.charges = [];
+                    if(!db.sessions) db.sessions = [];
+                } catch(e) { console.error("Corrupt data"); }
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem(DB_KEY, JSON.stringify(db));
+                updateDashboard();
+            } catch (e) {
+                alert("Mémoire pleine ! Veuillez supprimer d'anciennes données ou les photos.");
+            }
+        }
+
+        function checkSession() {
+            const user = sessionStorage.getItem('ft_user');
+            if(user) login(user);
+            else showScreen('login');
+        }
+
+        // --- NAVIGATION ---
+        function showScreen(id) {
+            document.getElementById('login-view').classList.toggle('hidden', id !== 'login');
+            document.getElementById('main-view').classList.toggle('hidden', id !== 'main');
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'members', 'finance', 'sessions', 'settings'].forEach(t => {
+                document.getElementById(`${t}-section`).classList.toggle('hidden', t !== tabId);
+            });
+            
+            // Update Bottom Bar Active State
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                const active = btn.dataset.view === tabId;
+                const icon = btn.querySelector('i');
+                icon.className = active ? `ph-fill ${icon.className.split(' ')[1]} text-2xl mb-0.5` : `ph-bold ${icon.className.split(' ')[1]} text-2xl mb-0.5`;
+                btn.className = `nav-button flex-1 h-full flex flex-col items-center justify-center ${active ? 'text-blue-600' : 'text-slate-400'}`;
+            });
+        }
+
+        function login(role) {
+            currentUser = role;
+            sessionStorage.setItem('ft_user', role);
+            showScreen('main');
+            document.getElementById('user-role-badge').textContent = role === 'owner' ? 'PROPRIO' : 'GÉRANT';
+            document.getElementById('app-title-main').textContent = db.config.gymName;
+            updateDashboard();
+            renderMembers();
+            renderFinance();
+            switchTab(role === 'owner' ? 'dashboard' : 'members');
+        }
+
+        function logout() {
+            currentUser = null;
+            sessionStorage.removeItem('ft_user');
+            showScreen('login');
+        }
+
+        // --- EVENTS ---
+        function setupEvents() {
+            // Login Logic
+            document.getElementById('manager-tab').onclick = () => setLoginMode('manager');
+            document.getElementById('consultation-tab').onclick = () => setLoginMode('consultation');
+            document.getElementById('kiosk-tab').onclick = () => startKioskMode();
+
+            document.getElementById('login-button').onclick = () => {
+                if(document.getElementById('email-input').value === 'admin' && document.getElementById('password-input').value === 'admin') login('manager');
+                else alert('Admin / Admin');
+            };
+            document.getElementById('consultation-login-button').onclick = () => {
+                if(document.getElementById('consultation-pin-input').value === SUPERVISOR_PIN) login('owner');
+                else alert('Code incorrect');
+            };
+            document.getElementById('logout-button').onclick = logout;
+
+            // Nav Logic
+            document.querySelectorAll('.nav-button').forEach(b => b.onclick = () => switchTab(b.dataset.view));
+
+            // Members Logic
+            document.getElementById('add-member-button').onclick = openAddMemberModal;
+            document.querySelector('#member-modal .close-modal').onclick = () => document.getElementById('member-modal').classList.add('hidden');
+            document.getElementById('type-subscription').onclick = () => setMemberType('subscription');
+            document.getElementById('type-session').onclick = () => setMemberType('session');
+            document.getElementById('member-photo-input').onchange = handlePhotoPreview;
+            document.getElementById('save-member-btn').onclick = handleMemberSubmit;
+            document.getElementById('search-input').oninput = (e) => renderMembers(e.target.value);
+            
+            // Member View Logic
+            document.getElementById('close-view-modal').onclick = () => document.getElementById('view-member-modal').classList.add('hidden');
+            document.getElementById('delete-member-btn').onclick = deleteCurrentMember;
+            document.getElementById('share-whatsapp-btn').onclick = shareOnWhatsApp;
+
+            // Filters
+            document.querySelectorAll('.filter-btn').forEach(b => b.onclick = (e) => {
+                document.querySelectorAll('.filter-btn').forEach(x => x.className = "filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap");
+                e.target.className = "filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white whitespace-nowrap";
+                currentFilter = e.target.dataset.filter;
+                renderMembers();
+            });
+
+            // QR
+            document.getElementById('scan-qr-button').onclick = () => startQrScanner(false);
+            document.getElementById('close-scanner-button').onclick = stopQrScanner;
+            document.getElementById('close-kiosk-button').onclick = stopKioskMode;
+
+            // Finance / Charges
+            document.getElementById('add-charge-button').onclick = () => document.getElementById('charge-modal').classList.remove('hidden');
+            document.getElementById('cancel-charge-btn').onclick = () => document.getElementById('charge-modal').classList.add('hidden');
+            document.getElementById('confirm-charge-btn').onclick = handleAddCharge;
+            document.getElementById('download-report-button').onclick = downloadCSV;
+
+            // Data
+            document.getElementById('save-settings-button').onclick = () => {
+                db.config.gymName = document.getElementById('gym-name-input').value || "FIT TRACK";
+                saveData();
+                document.getElementById('app-title-main').textContent = db.config.gymName;
+                alert("Enregistré");
+            };
+            document.getElementById('reset-app-button').onclick = () => {
+                if(confirm("TOUT EFFACER ?")) { localStorage.removeItem(DB_KEY); location.reload(); }
+            };
+            
+            // JSON
+            document.getElementById('export-json-btn').onclick = exportJSON;
+            document.getElementById('import-json-btn').onclick = () => document.getElementById('import-json-input').click();
+            document.getElementById('import-json-input').onchange = importJSON;
+            document.getElementById('import-data-login-btn').onclick = () => document.getElementById('file-import-input-login').click();
+            document.getElementById('file-import-input-login').onchange = importJSON;
+        }
+
+        function setLoginMode(mode) {
+            document.getElementById('manager-login-form').classList.toggle('hidden', mode !== 'manager');
+            document.getElementById('consultation-login-form').classList.toggle('hidden', mode !== 'consultation');
+            
+            document.getElementById('manager-tab').className = mode === 'manager' ? "flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
+            document.getElementById('consultation-tab').className = mode === 'consultation' ? "flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
+        }
+
+        function setMemberType(type) {
+            document.getElementById('member-type').value = type;
+            document.getElementById('type-subscription').className = type === 'subscription' ? "flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50";
+            document.getElementById('type-session').className = type === 'session' ? "flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50";
+            
+            document.getElementById('subscription-fields').classList.toggle('hidden', type !== 'subscription');
+            document.getElementById('session-fields').classList.toggle('hidden', type === 'session');
+        }
+
+        // --- PHOTO COMPRESSION ---
+        function handlePhotoPreview(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.src = evt.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400;
+                    const scale = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('photo-preview').src = compressed;
+                    document.getElementById('photo-preview').classList.remove('hidden');
+                    document.getElementById('photo-placeholder').classList.add('hidden');
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // --- MEMBERS CRUD ---
+        async function handleMemberSubmit(e) {
+            e.preventDefault();
+            
+            // Validate basic fields
+            if(!document.getElementById('member-firstname').value || !document.getElementById('member-lastname').value) {
+                alert("Nom et Prénom obligatoires");
+                return;
+            }
+
+            const btn = document.getElementById('save-member-btn');
+            const spinner = document.getElementById('btn-spinner');
+            btn.disabled = true; spinner.classList.remove('hidden');
+
+            // Delay for UI refresh
+            setTimeout(() => {
+                const id = document.getElementById('member-id').value || Date.now().toString();
+                const isNew = !document.getElementById('member-id').value;
+                const photoSrc = document.getElementById('photo-preview').src;
+                
+                let member = isNew ? { id, createdAt: new Date().toISOString(), status: 'actif' } : db.members.find(m => m.id === id);
+                
+                member.firstname = document.getElementById('member-firstname').value;
+                member.lastname = document.getElementById('member-lastname').value;
+                member.phone = document.getElementById('member-phone').value;
+                member.address = document.getElementById('member-address').value; // New
+                member.medical = document.getElementById('member-medical').value; // New
+                member.emergencyName = document.getElementById('member-emergency-name').value; // New
+                member.emergencyPhone = document.getElementById('member-emergency-phone').value; // New
+                
+                // Photo : only update if new photo set
+                if (!document.getElementById('photo-preview').classList.contains('hidden')) {
+                     member.photo = photoSrc;
+                }
+
+                member.memberType = document.getElementById('member-type').value;
+                
+                // Logic Abonnement / Séances
+                if (member.memberType === 'subscription') {
+                    const duration = parseInt(document.getElementById('subscription-duration').value);
+                    if (duration > 0) {
+                        const start = (isNew || !member.endSubDate) ? new Date() : new Date(Math.max(new Date(), new Date(member.endSubDate)));
+                        start.setMonth(start.getMonth() + duration);
+                        member.endSubDate = start.toISOString();
+                    }
+                } else {
+                    const count = parseInt(document.getElementById('session-count').value);
+                    if (count > 0) {
+                        member.sessionsLeft = (member.sessionsLeft || 0) + count;
+                    }
+                }
+
+                // Payment
+                const amount = parseFloat(document.getElementById('member-amount').value);
+                if (amount > 0) {
+                    db.payments.push({
+                        id: Date.now().toString(),
+                        memberId: id,
+                        desc: isNew ? "Nouvelle Adhésion" : "Renouvellement",
+                        amount: amount,
+                        date: new Date().toISOString()
+                    });
+                }
+
+                if(isNew) db.members.push(member);
+                
+                saveData();
+                document.getElementById('member-modal').classList.add('hidden');
+                renderMembers();
+                
+                btn.disabled = false; spinner.classList.add('hidden');
+            }, 100);
+        }
+
+        function openAddMemberModal() {
+            document.getElementById('member-form').reset();
+            document.getElementById('member-id').value = '';
+            document.getElementById('photo-preview').src = '';
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-placeholder').classList.remove('hidden');
+            document.getElementById('member-modal').classList.remove('hidden');
+        }
+
+        let currentViewMemberId = null;
+
+        function showMemberDetails(m) {
+            currentViewMemberId = m.id;
+            const s = getStatus(m);
+            const container = document.getElementById('view-member-content');
+            
+            container.innerHTML = `
+                <div class="text-center">
+                     <div class="w-32 h-32 mx-auto bg-slate-200 rounded-full mb-3 overflow-hidden border-4 border-white shadow-lg">
+                        ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-slate-400 text-4xl"><i class="ph-fill ph-user"></i></div>`}
+                    </div>
+                    <h3 class="text-2xl font-bold text-slate-800">${m.firstname} ${m.lastname}</h3>
+                    <div class="inline-block px-3 py-1 rounded-full text-sm font-bold ${s.bg} ${s.color} mt-1">${s.label}</div>
+                    <p class="text-slate-500 text-sm mt-1">${m.phone}</p>
+                </div>
+                
+                <div class="bg-slate-50 p-4 rounded-xl space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">Type</span>
+                        <span class="font-bold">${m.memberType === 'subscription' ? 'Abonnement' : 'Carnet'}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500">${m.memberType === 'subscription' ? 'Fin le' : 'Reste'}</span>
+                        <span class="font-bold text-blue-600">${m.memberType === 'subscription' ? (m.endSubDate ? new Date(m.endSubDate).toLocaleDateString() : '-') : (m.sessionsLeft + ' séances')}</span>
+                    </div>
+                    ${m.address ? `<div class="flex justify-between text-sm"><span class="text-slate-500">Résidence</span><span class="font-bold">${m.address}</span></div>` : ''}
+                </div>
+
+                ${(m.medical || m.emergencyName) ? `
+                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
+                    <h4 class="text-red-800 font-bold text-xs uppercase mb-2">Médical & Urgence</h4>
+                    ${m.medical ? `<p class="text-sm text-red-700 mb-2"><i class="ph-bold ph-first-aid mr-1"></i> ${m.medical}</p>` : ''}
+                    ${m.emergencyName ? `<p class="text-sm text-red-700"><i class="ph-bold ph-phone mr-1"></i> ${m.emergencyName} (${m.emergencyPhone})</p>` : ''}
+                </div>` : ''}
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                     <button onclick="renewMember('${m.id}')" class="bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200">Renouveler</button>
+                     <button onclick="showQR('${m.id}', '${m.firstname}')" class="bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg">Carte QR</button>
+                </div>
+            `;
+            document.getElementById('view-member-modal').classList.remove('hidden');
+        }
+
+        function getStatus(m) {
+            if (m.status === 'suspendu') return { label: 'Suspendu', color: 'text-slate-500', bg: 'bg-slate-200' };
+            if (m.memberType === 'subscription') {
+                if (!m.endSubDate) return { label: 'Invalide', color: 'text-red-500', bg: 'bg-red-100' };
+                const days = Math.ceil((new Date(m.endSubDate) - new Date()) / (1000 * 3600 * 24));
+                if (days < 0) return { label: 'Expiré', color: 'text-red-600', bg: 'bg-red-100' };
+                if (days <= 7) return { label: 'Fin Bientôt', color: 'text-orange-600', bg: 'bg-orange-100' };
+                return { label: 'Actif', color: 'text-green-600', bg: 'bg-green-100' };
+            } else {
+                return m.sessionsLeft > 0 ? { label: `${m.sessionsLeft} Séances`, color: 'text-blue-600', bg: 'bg-blue-100' } : { label: 'Épuisé', color: 'text-red-600', bg: 'bg-red-100' };
+            }
+        }
+
+        function renderMembers(query = '') {
+            const list = document.getElementById('member-list-container');
+            list.innerHTML = '';
+            
+            let filtered = db.members.filter(m => {
+                const txt = (m.firstname + ' ' + m.lastname + ' ' + m.phone).toLowerCase();
+                const q = query.toLowerCase();
+                
+                const s = getStatus(m);
+                let matchFilter = true;
+                if (currentFilter === 'active') matchFilter = s.color.includes('green') || s.color.includes('blue');
+                if (currentFilter === 'expiring') matchFilter = s.color.includes('orange');
+                if (currentFilter === 'expired') matchFilter = s.color.includes('red');
+
+                return txt.includes(q) && matchFilter;
+            });
+
+            filtered.sort((a,b) => a.lastname.localeCompare(b.lastname));
+
+            if(filtered.length === 0) {
+                document.getElementById('empty-state-members').classList.remove('hidden');
+            } else {
+                document.getElementById('empty-state-members').classList.add('hidden');
+                filtered.forEach(m => {
+                    const s = getStatus(m);
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform";
+                    div.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 shrink-0 overflow-hidden">
+                                ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-slate-300"><i class="ph-fill ph-user text-xl"></i></div>`}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-slate-800 truncate">${m.firstname} ${m.lastname}</p>
+                                <p class="text-xs text-slate-400">${m.phone}</p>
+                            </div>
+                        </div>
+                        <div class="text-right shrink-0 pl-2">
+                            <span class="text-xs font-bold px-2 py-1 rounded-full ${s.bg} ${s.color}">${s.label}</span>
+                        </div>
+                    `;
+                    div.onclick = () => showMemberDetails(m);
+                    list.appendChild(div);
+                });
+            }
+        }
+
+        function renewMember(id) {
+            document.getElementById('view-member-modal').classList.add('hidden');
+            openAddMemberModal();
+            
+            // Prefill logic would go here, simpler to just open blank or implement edit logic
+            // For simplicity in this version, we just tell user to edit. 
+            // Or better: We find the member and populate the modal.
+            const m = db.members.find(x => x.id === id);
+            document.getElementById('member-id').value = m.id;
+            document.getElementById('member-firstname').value = m.firstname;
+            document.getElementById('member-lastname').value = m.lastname;
+            document.getElementById('member-phone').value = m.phone;
+            document.getElementById('member-address').value = m.address || '';
+            document.getElementById('member-medical').value = m.medical || '';
+            document.getElementById('member-emergency-name').value = m.emergencyName || '';
+            document.getElementById('member-emergency-phone').value = m.emergencyPhone || '';
+            if(m.photo) {
+                document.getElementById('photo-preview').src = m.photo;
+                document.getElementById('photo-preview').classList.remove('hidden');
+                document.getElementById('photo-placeholder').classList.add('hidden');
+            }
+            setMemberType(m.memberType);
+        }
+
+        function deleteCurrentMember() {
+            if(confirm("Supprimer définitivement ce client ?")) {
+                db.members = db.members.filter(m => m.id !== currentViewMemberId);
+                saveData();
+                document.getElementById('view-member-modal').classList.add('hidden');
+                renderMembers();
+            }
+        }
+
+        function shareOnWhatsApp() {
+            const m = db.members.find(x => x.id === currentViewMemberId);
+            if(!m) return;
+
+            let text = `*FICHE CLIENT - ${db.config.gymName}*\n\n`;
+            text += `👤 *${m.firstname} ${m.lastname}*\n`;
+            text += `📞 ${m.phone}\n`;
+            if(m.address) text += `🏠 ${m.address}\n`;
+            
+            const s = getStatus(m);
+            text += `\n📊 Statut: ${s.label}\n`;
+            
+            if(m.memberType === 'subscription' && m.endSubDate) {
+                text += `📅 Fin: ${new Date(m.endSubDate).toLocaleDateString()}\n`;
+            } else if(m.memberType === 'session') {
+                text += `🎫 Reste: ${m.sessionsLeft} séances\n`;
+            }
+
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function showQR(id, name) {
+             const win = window.open("", "Carte", "width=350,height=500");
+             win.document.write(`
+                <html><body style="font-family:sans-serif; text-align:center; padding:20px;">
+                    <h2 style="margin:0">${db.config.gymName}</h2>
+                    <h1 style="font-size:24px; margin:10px 0;">${name}</h1>
+                    <div id="qrcode" style="display:flex;justify-content:center;margin:20px 0;"></div>
+                    <p style="color:#666">ID: ${id.substring(0,8)}...</p>
+                    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+                    <script>new QRCode(document.getElementById("qrcode"), {text:"${id}", width:200, height:200});<\/script>
+                </body></html>
+             `);
+        }
+
+        // --- FINANCE ---
+        function handleAddCharge() {
+            const desc = document.getElementById('charge-desc-input').value;
+            const amount = parseFloat(document.getElementById('charge-amount-input').value);
+            
+            if(desc && amount > 0) {
+                db.charges.push({
+                    id: Date.now().toString(),
+                    desc,
+                    amount,
+                    date: new Date().toISOString()
+                });
+                saveData();
+                renderFinance();
+                document.getElementById('charge-modal').classList.add('hidden');
+                document.getElementById('charge-desc-input').value = '';
+                document.getElementById('charge-amount-input').value = '';
+            } else {
+                alert("Veuillez remplir les champs");
+            }
+        }
+
+        function renderFinance() {
+            const list = document.getElementById('financial-history-list');
+            list.innerHTML = '';
+            
+            const all = [
+                ...db.payments.map(p => ({...p, type: 'in'})),
+                ...db.charges.map(c => ({...c, type: 'out'}))
+            ].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            if(all.length === 0) {
+                document.getElementById('empty-state-finance').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('empty-state-finance').classList.add('hidden');
+
+            all.slice(0,50).forEach(t => {
+                const div = document.createElement('div');
+                div.className = "p-4 flex justify-between items-center";
+                div.innerHTML = `
+                    <div>
+                        <p class="font-bold text-sm text-slate-800">${t.desc}</p>
+                        <p class="text-xs text-slate-400">${new Date(t.date).toLocaleDateString()}</p>
+                    </div>
+                    <div class="font-bold ${t.type === 'in' ? 'text-emerald-600' : 'text-red-600'}">
+                        ${t.type === 'in' ? '+' : '-'} ${t.amount}
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // --- DASHBOARD ---
+        function updateDashboard() {
+             const now = new Date();
+             const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+             
+             let active = 0, expiring = 0, income = 0, expense = 0;
+             
+             db.members.forEach(m => {
+                 const s = getStatus(m);
+                 if(s.color.includes('green') || s.color.includes('blue')) active++;
+                 if(s.color.includes('orange')) expiring++;
+             });
+             
+             db.payments.forEach(p => { if(new Date(p.date) >= startMonth) income += p.amount; });
+             db.charges.forEach(c => { if(new Date(c.date) >= startMonth) expense += c.amount; });
+             
+             document.getElementById('db-active-members').textContent = active;
+             document.getElementById('db-expiring-soon').textContent = expiring;
+             document.getElementById('db-revenue-month').textContent = income.toLocaleString() + ' F';
+             document.getElementById('db-charges-month').textContent = expense.toLocaleString() + ' F';
+             document.getElementById('db-net-profit-month').textContent = (income - expense).toLocaleString() + ' F';
+        }
+
+        // --- QR & KIOSK ---
+        function startQrScanner(kiosk) {
+            isKioskMode = kiosk;
+            const el = kiosk ? "kiosk-view" : "qr-scanner-modal";
+            document.getElementById(el).classList.remove('hidden');
+            
+            html5QrCode = new Html5Qrcode(kiosk ? "kiosk-reader" : "qr-reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+        }
+        
+        function stopQrScanner() {
+            if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
+            document.getElementById("qr-scanner-modal").classList.add('hidden');
+        }
+        
+        function stopKioskMode() {
+             if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
+             document.getElementById("kiosk-view").classList.add('hidden');
+             showScreen('login');
+        }
+        
+        function startKioskMode() {
+            document.getElementById("login-view").classList.add('hidden');
+            startQrScanner(true);
+        }
+
+        function onScanSuccess(id) {
+            if(!isKioskMode) stopQrScanner();
+            
+            const m = db.members.find(x => x.id === id);
+            if(!m) { showFeedback('Inconnu', 'Membre non trouvé', 'red'); return; }
+            
+            const s = getStatus(m);
+            if(s.color.includes('red')) {
+                showFeedback(m.firstname, "REFUSÉ: " + s.label, 'red');
+            } else {
+                // Checkin Logic
+                const openSess = db.sessions.find(x => x.memberId === id && !x.out);
+                if(openSess) {
+                    openSess.out = new Date().toISOString();
+                    showFeedback(m.firstname, "Au revoir !", "blue");
+                } else {
+                    if(m.memberType === 'session') m.sessionsLeft--;
+                    db.sessions.push({ id: Date.now().toString(), memberId: id, in: new Date().toISOString() });
+                    showFeedback(m.firstname, "Bienvenue !", "green");
+                }
+                saveData();
+                renderMembers(); // Refresh UI
+            }
+        }
+        
+        function showFeedback(title, msg, color) {
+            if(isKioskMode) {
+                const el = document.getElementById('kiosk-message');
+                el.innerHTML = `<h2 class="text-3xl font-bold text-${color}-500">${title}</h2><p class="text-white">${msg}</p>`;
+                setTimeout(() => el.innerHTML = "", 3000);
+            } else {
+                alert(title + ": " + msg);
+            }
+        }
+
+        // --- EXPORT ---
+        function exportJSON() {
+            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const a = document.createElement('a');
+            a.href = data; a.download = "backup_fittrack.json";
+            a.click();
+        }
+        
+        function importJSON(e) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try { db = JSON.parse(evt.target.result); saveData(); location.reload(); }
+                catch(err) { alert("Erreur fichier"); }
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+        
+        function downloadCSV() {
+            const rows = [["Date", "Type", "Desc", "Montant"]];
+            db.payments.forEach(p => rows.push([p.date, "Revenu", p.desc, p.amount]));
+            db.charges.forEach(c => rows.push([c.date, "Charge", c.desc, -c.amount]));
+            const csv = "data:text/csv;charset=utf-8," + rows.map(e => e.join(";")).join("\n");
+            const a = document.createElement('a'); a.href = encodeURI(csv); a.download = "rapport.csv"; a.click();
+        }
+
+    </script>
+</body>
+</html>
