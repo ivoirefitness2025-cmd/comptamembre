@@ -3,994 +3,1076 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FIT TRACK - Version Mobile</title>
+    <title>FIT TRACK PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.1/qrcode.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/phosphor-icons/1.4.2/css/phosphor.min.css" rel="stylesheet">
     <style>
-        /* Optimisation Mobile */
-        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
-        input, select, textarea { font-size: 16px !important; } /* Stop zoom iPhone */
+        /* Styles Mobile App Native */
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; user-select: none; }
+        input, select, textarea { font-size: 16px !important; user-select: text; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* Styles spécifiques */
-        .modal-enter { transform: translateY(100%); transition: transform 0.3s ease-out; }
-        .modal-enter-active { transform: translateY(0); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        /* Animations */
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-100 text-slate-800 font-sans h-screen flex flex-col overflow-hidden selection:bg-blue-100">
 
-    <!-- Zone d'impression cachée -->
-    <div id="print-area" class="hidden"></div>
-
-    <!-- Conteneur Principal -->
-    <div id="app" class="flex-1 flex flex-col h-full overflow-hidden relative">
-
-        <!-- VUE CONNEXION -->
-        <div id="login-view" class="absolute inset-0 z-50 bg-white flex flex-col justify-center p-6 overflow-y-auto">
-            <div class="w-full max-w-sm mx-auto">
-                <div class="flex items-center justify-center mb-8">
-                    <div class="bg-blue-600 p-3 rounded-full">
-                        <i class="ph-bold ph-barbell text-4xl text-white"></i>
-                    </div>
-                    <h1 class="text-3xl font-bold ml-3 text-slate-800">FIT TRACK</h1>
-                </div>
-                
-                <div class="bg-slate-50 p-1 rounded-lg flex mb-8">
-                    <button id="manager-tab" class="flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all">Gérant</button>
-                    <button id="consultation-tab" class="flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all">Proprio</button>
-                    <button id="kiosk-tab" class="flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all">Kiosque</button>
-                </div>
-
-                <div id="manager-login-form" class="space-y-4">
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase ml-1">Identifiant</label>
-                        <input type="text" id="email-input" placeholder="admin" class="w-full p-4 rounded-xl bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all">
-                    </div>
-                    <div>
-                        <label class="text-xs font-bold text-slate-500 uppercase ml-1">Mot de passe</label>
-                        <input type="password" id="password-input" placeholder="admin" class="w-full p-4 rounded-xl bg-slate-100 border-transparent focus:bg-white focus:border-blue-500 focus:ring-0 transition-all">
-                    </div>
-                    <button id="login-button" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-all text-lg">
-                        Se Connecter
-                    </button>
-                </div>
-
-                <div id="consultation-login-form" class="space-y-4 hidden">
-                    <input type="password" id="consultation-pin-input" placeholder="Code PIN (5008)" class="w-full p-4 rounded-xl bg-slate-100 text-center text-2xl tracking-widest" inputmode="numeric" maxlength="4">
-                    <button id="consultation-login-button" class="w-full bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all">
-                        Entrer
-                    </button>
-                </div>
-                
-                <div class="mt-8 text-center">
-                    <button id="import-data-login-btn" class="text-sm text-slate-400 underline">Restaurer sauvegarde</button>
-                    <input type="file" id="file-import-input-login" accept=".json" class="hidden">
-                </div>
+    <!-- VUE CONNEXION (PIN PAD) -->
+    <div id="login-view" class="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-6">
+        <div class="mb-8 text-center">
+            <div class="bg-blue-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
+                <i class="ph-bold ph-barbell text-4xl text-white"></i>
             </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight">FIT TRACK</h1>
+            <p class="text-slate-400 text-sm mt-1">Gestion Salle de Sport</p>
         </div>
 
-        <!-- VUE PRINCIPALE -->
-        <div id="main-view" class="hidden flex-1 flex flex-col h-full">
+        <!-- PIN Display -->
+        <div class="flex justify-center gap-4 mb-8">
+            <div class="w-4 h-4 rounded-full bg-slate-700 pin-dot transition-all duration-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-700 pin-dot transition-all duration-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-700 pin-dot transition-all duration-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-700 pin-dot transition-all duration-200"></div>
+        </div>
+
+        <!-- Keypad -->
+        <div class="grid grid-cols-3 gap-4 w-full max-w-xs">
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="1">1</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="2">2</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="3">3</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="4">4</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="5">5</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="6">6</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="7">7</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="8">8</button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="9">9</button>
+            <button class="h-16 rounded-2xl bg-transparent text-slate-500 flex items-center justify-center" id="restore-btn"><span class="text-xs font-bold">RESTAURER</span></button>
+            <button class="pin-btn h-16 rounded-2xl bg-slate-800 text-white text-2xl font-bold active:bg-blue-600 transition-colors" data-val="0">0</button>
+            <button class="h-16 rounded-2xl bg-transparent text-red-400 flex items-center justify-center" id="clear-pin"><i class="ph-bold ph-backspace text-2xl"></i></button>
+        </div>
+        <input type="file" id="restore-file-input" accept=".json" class="hidden">
+        
+        <!-- Mode Kiosque Link -->
+        <button id="open-kiosk-btn" class="mt-8 text-slate-500 text-sm font-bold flex items-center gap-2 p-2 rounded-lg hover:bg-slate-800">
+            <i class="ph-bold ph-scan"></i> Mode Kiosque (Scan Seul)
+        </button>
+    </div>
+
+    <!-- VUE PRINCIPALE (APP) -->
+    <div id="main-view" class="hidden flex-1 flex flex-col h-full bg-slate-50">
+        
+        <!-- Header -->
+        <header class="bg-white px-4 py-3 flex justify-between items-center border-b border-slate-200 z-20 shadow-sm shrink-0">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg">
+                    <i class="ph-bold ph-barbell text-white text-lg"></i>
+                </div>
+                <h1 id="app-title-display" class="font-bold text-slate-800 truncate max-w-[150px]">FIT TRACK</h1>
+            </div>
+            <div class="flex gap-2">
+                <button id="main-scan-btn" class="bg-slate-800 text-white px-3 py-2 rounded-lg font-bold text-sm flex items-center gap-2 active:scale-95 transition-transform">
+                    <i class="ph-bold ph-qr-code"></i> SCANNER
+                </button>
+                <button id="logout-btn" class="bg-slate-100 text-slate-600 p-2 rounded-lg active:bg-slate-200">
+                    <i class="ph-bold ph-sign-out text-xl"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Contenu Scrollable -->
+        <main class="flex-1 overflow-y-auto pb-24" id="content-area">
             
-            <!-- Header -->
-            <header class="bg-white px-4 py-3 flex justify-between items-center border-b z-20 shadow-sm shrink-0">
-                <h1 id="app-title-main" class="text-lg font-extrabold text-blue-900 truncate max-w-[200px]">FIT TRACK</h1>
-                <div class="flex items-center gap-3">
-                    <span id="user-role-badge" class="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full uppercase tracking-wide">Gérant</span>
-                    <button id="logout-button" class="text-slate-400 hover:text-red-500"><i class="ph-bold ph-sign-out text-2xl"></i></button>
+            <!-- ACCUEIL -->
+            <div id="tab-dashboard" class="p-4 space-y-4">
+                <!-- Stats Rapides -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="p-2 bg-green-100 rounded-lg text-green-600"><i class="ph-fill ph-check-circle text-xl"></i></div>
+                            <span class="text-2xl font-black text-slate-800" id="stat-active">0</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Membres Actifs</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="p-2 bg-orange-100 rounded-lg text-orange-600"><i class="ph-fill ph-clock-countdown text-xl"></i></div>
+                            <span class="text-2xl font-black text-slate-800" id="stat-expiring">0</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-500 uppercase">Fin Bientôt</p>
+                    </div>
                 </div>
-            </header>
 
-            <!-- Contenu Défilant -->
-            <main class="flex-1 overflow-y-auto bg-slate-50 pb-24 relative" id="main-content">
-                
-                <!-- Section DASHBOARD -->
-                <div id="dashboard-section" class="p-4 space-y-4">
+                <!-- Finance Card -->
+                <div class="bg-slate-800 rounded-2xl p-5 text-white shadow-xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-slate-400 text-xs font-bold uppercase">Bilan du Mois</p>
+                        <i class="ph-fill ph-chart-line-up text-green-400 text-xl"></i>
+                    </div>
+                    <p id="stat-revenue" class="text-3xl font-black mb-1">0 F</p>
+                    <div class="h-px bg-slate-700 my-3"></div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Charges: <span id="stat-expense" class="text-red-400 font-bold">0 F</span></span>
+                        <span class="text-slate-400">Net: <span id="stat-net" class="text-emerald-400 font-bold">0 F</span></span>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <h3 class="font-bold text-lg mb-3 px-1">Actions Rapides</h3>
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                            <i class="ph-fill ph-users text-2xl text-blue-500 mb-1"></i>
-                            <p class="text-slate-500 text-xs font-bold uppercase">Actifs</p>
-                            <p id="db-active-members" class="text-2xl font-black text-slate-800">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                            <i class="ph-fill ph-warning-circle text-2xl text-orange-500 mb-1"></i>
-                            <p class="text-slate-500 text-xs font-bold uppercase">Expire Bientôt</p>
-                            <p id="db-expiring-soon" class="text-2xl font-black text-slate-800">0</p>
-                        </div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-5 text-white shadow-lg shadow-blue-200">
-                        <p class="text-blue-100 text-xs font-bold uppercase mb-1">Chiffre d'affaires (Mois)</p>
-                        <p id="db-revenue-month" class="text-3xl font-black">0 FCFA</p>
-                        <div class="mt-4 flex justify-between items-end border-t border-white/20 pt-3">
-                            <div>
-                                <p class="text-blue-200 text-[10px] uppercase">Charges</p>
-                                <p id="db-charges-month" class="font-bold text-red-200">0 FCFA</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-blue-200 text-[10px] uppercase">Net</p>
-                                <p id="db-net-profit-month" class="font-bold text-emerald-300 text-lg">0 FCFA</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button id="reset-app-button" class="w-full p-3 rounded-xl border border-red-200 text-red-500 font-bold text-sm flex items-center justify-center mt-8">
-                        <i class="ph-bold ph-trash mr-2"></i> Réinitialiser Données
-                    </button>
-                </div>
-
-                <!-- Section MEMBRES -->
-                <div id="members-section" class="hidden p-4">
-                    <div class="sticky top-0 bg-slate-50 pb-2 z-10 space-y-3">
-                        <div class="flex gap-2">
-                            <div class="relative flex-1">
-                                <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                <input type="text" id="search-input" placeholder="Recherche..." class="w-full pl-10 pr-4 py-3 rounded-xl border-none shadow-sm focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <button id="scan-qr-button" class="bg-slate-800 text-white w-12 rounded-xl shadow-sm flex items-center justify-center"><i class="ph-bold ph-qr-code text-2xl"></i></button>
-                        </div>
-                        
-                        <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                            <button data-filter="all" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white whitespace-nowrap">Tous</button>
-                            <button data-filter="active" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Actifs</button>
-                            <button data-filter="expiring" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Fin Bientôt</button>
-                            <button data-filter="expired" class="filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap">Expirés</button>
-                        </div>
-                    </div>
-
-                    <div id="member-list-container" class="space-y-3 pb-20 mt-2"></div>
-                    
-                    <div id="empty-state-members" class="hidden flex flex-col items-center justify-center py-10 text-slate-400">
-                        <i class="ph-duotone ph-users text-6xl mb-2"></i>
-                        <p>Aucun membre trouvé</p>
-                    </div>
-
-                    <!-- FAB Add Member -->
-                    <button id="add-member-button" class="fixed bottom-24 right-4 bg-blue-600 text-white w-14 h-14 rounded-full shadow-xl shadow-blue-300 flex items-center justify-center active:scale-90 transition-transform z-20">
-                        <i class="ph-bold ph-plus text-3xl"></i>
-                    </button>
-                </div>
-
-                <!-- Section FINANCE -->
-                <div id="finance-section" class="hidden p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="font-bold text-lg">Transactions</h2>
-                        <button id="add-charge-button" class="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center"><i class="ph-bold ph-minus-circle mr-1"></i> Charge</button>
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-                         <div id="financial-history-list" class="divide-y"></div>
-                         <div id="empty-state-finance" class="hidden p-8 text-center text-slate-400">Aucune transaction</div>
-                    </div>
-                    <button id="download-report-button" class="w-full mt-6 bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg flex items-center justify-center">
-                        <i class="ph-bold ph-file-csv mr-2"></i> Exporter Rapport CSV
-                    </button>
-                </div>
-
-                <!-- Section SESSIONS -->
-                <div id="sessions-section" class="hidden p-4">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="font-bold text-lg">Présences</h2>
-                        <input type="date" id="session-date-filter" class="bg-white border-none rounded-lg text-sm p-2 shadow-sm font-medium">
-                    </div>
-                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
-                         <div id="sessions-history-list" class="divide-y"></div>
-                         <div id="empty-state-sessions" class="hidden p-8 text-center text-slate-400">Aucune présence</div>
+                        <button id="nav-add-member" class="bg-blue-600 text-white p-4 rounded-2xl font-bold text-left shadow-lg shadow-blue-200 active:scale-[0.98] transition-transform">
+                            <i class="ph-bold ph-user-plus text-2xl mb-2"></i><br>Nouveau Client
+                        </button>
+                        <button id="nav-add-charge" class="bg-white text-slate-800 border border-slate-200 p-4 rounded-2xl font-bold text-left active:scale-[0.98] transition-transform">
+                            <i class="ph-bold ph-receipt text-2xl mb-2 text-red-500"></i><br>Ajouter Charge
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                <!-- Section OPTIONS -->
-                <div id="settings-section" class="hidden p-4 space-y-4">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm">
-                        <h3 class="font-bold text-lg mb-3">Configuration</h3>
-                        <div class="space-y-3">
-                             <div>
-                                <label class="text-xs font-bold text-slate-500">Nom de la salle</label>
-                                <input type="text" id="gym-name-input" class="w-full mt-1 p-3 bg-slate-50 rounded-xl border-none">
-                             </div>
-                             <button id="save-settings-button" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl">Enregistrer</button>
-                        </div>
+            <!-- MEMBRES -->
+            <div id="tab-members" class="hidden p-4">
+                <div class="sticky top-0 bg-slate-50 pt-1 pb-3 z-10 space-y-3">
+                    <div class="relative">
+                        <i class="ph-bold ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="search-member" placeholder="Chercher un nom..." class="w-full pl-11 pr-4 py-3.5 rounded-xl border-none shadow-sm bg-white focus:ring-2 focus:ring-blue-500">
                     </div>
-
-                    <div class="bg-green-50 p-5 rounded-2xl border border-green-100">
-                        <h3 class="font-bold text-green-800 text-lg mb-2">Sauvegarde Données</h3>
-                        <p class="text-xs text-green-700 mb-4">Important : Sauvegardez régulièrement vos données.</p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button id="export-json-btn" class="bg-green-600 text-white font-bold py-3 rounded-xl text-sm">
-                                <i class="ph-bold ph-download"></i> Sauvegarder
-                            </button>
-                            <div class="relative">
-                                <button id="import-json-btn" class="w-full bg-white text-green-700 border border-green-200 font-bold py-3 rounded-xl text-sm">
-                                    <i class="ph-bold ph-upload"></i> Restaurer
-                                </button>
-                                <input type="file" id="import-json-input" accept=".json" class="hidden">
-                            </div>
-                        </div>
+                    <div class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                        <button class="filter-chip active bg-slate-800 text-white px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap" data-f="all">Tous</button>
+                        <button class="filter-chip bg-white text-slate-600 border px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap" data-f="active">Actifs</button>
+                        <button class="filter-chip bg-white text-slate-600 border px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap" data-f="session">Séances</button>
+                        <button class="filter-chip bg-white text-slate-600 border px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap" data-f="expired">Expirés</button>
                     </div>
                 </div>
+                <div id="members-list" class="space-y-3 pb-20"></div>
+            </div>
 
-            </main>
+            <!-- HISTORIQUE (PRESENCES) -->
+            <div id="tab-history" class="hidden p-4">
+                <h2 class="font-bold text-xl mb-4">Historique de Pointage</h2>
+                <div id="sessions-list" class="space-y-6"></div>
+            </div>
 
-            <!-- Navigation Bottom Bar -->
-            <nav class="bg-white border-t pb-safe-bottom flex justify-around items-center h-16 shrink-0 z-30">
-                <button data-view="dashboard" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-blue-600">
-                    <i class="ph-fill ph-house text-2xl mb-0.5"></i>
+            <!-- OPTIONS -->
+            <div id="tab-settings" class="hidden p-4 space-y-6">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-lg mb-3">Mon Établissement</h3>
+                    <input type="text" id="config-gym-name" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-slate-700 mb-3">
+                    <button id="save-config-btn" class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">Enregistrer le nom</button>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="font-bold text-lg mb-3">Données & Rapports</h3>
+                    <div class="space-y-3">
+                        <button id="export-csv-btn" class="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl font-bold text-slate-700 active:bg-slate-100">
+                            <span><i class="ph-bold ph-file-csv mr-2 text-green-600"></i> Rapport Détaillé (CSV)</span>
+                            <i class="ph-bold ph-caret-right"></i>
+                        </button>
+                        <button id="backup-json-btn" class="w-full flex items-center justify-between p-3 bg-slate-50 rounded-xl font-bold text-slate-700 active:bg-slate-100">
+                            <span><i class="ph-bold ph-floppy-disk mr-2 text-blue-600"></i> Sauvegarde Complète (JSON)</span>
+                            <i class="ph-bold ph-caret-right"></i>
+                        </button>
+                         <button id="reset-data-btn" class="w-full flex items-center justify-between p-3 bg-red-50 rounded-xl font-bold text-red-600 active:bg-red-100">
+                            <span><i class="ph-bold ph-trash mr-2"></i> Réinitialiser tout</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-center text-xs text-slate-400 mt-4">Version Locale 2.0 - Données stockées sur l'appareil</p>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bg-white border-t border-slate-200 pb-safe shrink-0 z-30">
+            <div class="flex justify-around items-center h-16">
+                <button class="nav-item active flex-1 h-full flex flex-col items-center justify-center text-blue-600" data-tab="dashboard">
+                    <i class="ph-fill ph-house text-2xl mb-1"></i>
                     <span class="text-[10px] font-bold">Accueil</span>
                 </button>
-                <button data-view="members" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
-                    <i class="ph-fill ph-users text-2xl mb-0.5"></i>
-                    <span class="text-[10px] font-bold">Membres</span>
+                <button class="nav-item flex-1 h-full flex flex-col items-center justify-center text-slate-400" data-tab="members">
+                    <i class="ph-bold ph-users text-2xl mb-1"></i>
+                    <span class="text-[10px] font-bold">Clients</span>
                 </button>
-                <button data-view="finance" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
-                    <i class="ph-fill ph-wallet text-2xl mb-0.5"></i>
-                    <span class="text-[10px] font-bold">Compta</span>
-                </button>
-                <button data-view="sessions" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
-                    <i class="ph-fill ph-clock text-2xl mb-0.5"></i>
+                <button class="nav-item flex-1 h-full flex flex-col items-center justify-center text-slate-400" data-tab="history">
+                    <i class="ph-bold ph-clock-counter-clockwise text-2xl mb-1"></i>
                     <span class="text-[10px] font-bold">Pointage</span>
                 </button>
-                <button data-view="settings" class="nav-button flex-1 h-full flex flex-col items-center justify-center text-slate-400">
-                    <i class="ph-fill ph-gear text-2xl mb-0.5"></i>
+                <button class="nav-item flex-1 h-full flex flex-col items-center justify-center text-slate-400" data-tab="settings">
+                    <i class="ph-bold ph-gear text-2xl mb-1"></i>
                     <span class="text-[10px] font-bold">Options</span>
                 </button>
-            </nav>
-        </div>
+            </div>
+        </nav>
     </div>
 
-    <!-- MODALS -->
+    <!-- --- MODALS --- -->
 
     <!-- Modal Ajout/Edit Membre -->
-    <div id="member-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
-        <div class="bg-white w-full h-[90vh] sm:h-auto sm:max-w-lg rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden shadow-2xl transition-transform">
-            <!-- Header Modal -->
-            <div class="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0">
-                <button class="close-modal text-slate-500 font-bold text-sm flex items-center"><i class="ph-bold ph-arrow-left text-lg mr-1"></i> Retour</button>
-                <h2 class="font-bold text-lg">Fiche Client</h2>
-                <div class="w-12"></div> <!-- Spacer -->
+    <div id="modal-member" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full h-[92vh] sm:h-auto sm:max-w-lg rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden fade-in">
+            <div class="px-5 py-4 border-b flex justify-between items-center bg-slate-50">
+                <button class="close-modal text-slate-400 p-2 hover:text-slate-800"><i class="ph-bold ph-x text-xl"></i></button>
+                <h2 class="font-bold text-lg text-slate-800" id="modal-member-title">Nouveau Client</h2>
+                <div class="w-8"></div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
+                <input type="hidden" id="inp-id">
+                
+                <!-- Photo Section -->
+                <div class="flex justify-center">
+                    <div class="relative w-28 h-28 bg-slate-100 rounded-full overflow-hidden border-4 border-white shadow-lg group">
+                        <img id="inp-photo-preview" class="w-full h-full object-cover hidden">
+                        <div id="inp-photo-placeholder" class="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                            <i class="ph-fill ph-camera text-3xl"></i>
+                        </div>
+                        <input type="file" id="inp-photo" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 z-10 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Infos -->
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="text" id="inp-firstname" placeholder="Prénom" class="w-full p-3.5 bg-slate-50 rounded-xl border-none font-semibold">
+                    <input type="text" id="inp-lastname" placeholder="Nom" class="w-full p-3.5 bg-slate-50 rounded-xl border-none font-semibold">
+                </div>
+                <input type="tel" id="inp-phone" placeholder="Téléphone" class="w-full p-3.5 bg-slate-50 rounded-xl border-none font-semibold">
+                
+                <!-- Type Abonnement -->
+                <div class="bg-slate-50 p-4 rounded-xl space-y-3">
+                    <div class="flex bg-slate-200 p-1 rounded-lg">
+                        <button type="button" id="btn-type-sub" class="flex-1 py-2 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all">Abonnement</button>
+                        <button type="button" id="btn-type-sess" class="flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all">Carnet</button>
+                    </div>
+                    <input type="hidden" id="inp-type" value="subscription">
+
+                    <div id="block-sub">
+                        <label class="text-xs font-bold text-slate-400 uppercase ml-1">Durée (Mois)</label>
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" class="dur-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setDuration(1)">1</button>
+                            <button type="button" class="dur-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setDuration(3)">3</button>
+                            <button type="button" class="dur-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setDuration(6)">6</button>
+                            <button type="button" class="dur-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setDuration(12)">12</button>
+                        </div>
+                        <input type="number" id="inp-duration" placeholder="Ou nombre de mois..." class="w-full mt-2 p-3 bg-white rounded-xl border-none">
+                    </div>
+
+                    <div id="block-sess" class="hidden">
+                        <label class="text-xs font-bold text-slate-400 uppercase ml-1">Nombre de séances</label>
+                        <div class="flex gap-2 mt-1">
+                            <button type="button" class="sess-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setSessions(10)">10</button>
+                            <button type="button" class="sess-btn flex-1 py-3 bg-white border rounded-xl font-bold text-slate-600" onclick="setSessions(20)">20</button>
+                        </div>
+                        <input type="number" id="inp-sessions" placeholder="Ou nombre de séances..." class="w-full mt-2 p-3 bg-white rounded-xl border-none">
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase ml-1">Montant Payé (FCFA)</label>
+                        <input type="number" id="inp-amount" class="w-full p-3.5 bg-green-50 text-green-700 font-bold rounded-xl border border-green-100 mt-1" placeholder="0">
+                    </div>
+                </div>
+                
+                <!-- Infos Supplémentaires -->
+                <div class="space-y-2">
+                    <input type="text" id="inp-address" placeholder="Lieu de résidence" class="w-full p-3 bg-slate-50 rounded-xl border-none text-sm">
+                    <textarea id="inp-medical" placeholder="Antécédents médicaux..." class="w-full p-3 bg-slate-50 rounded-xl border-none text-sm h-20"></textarea>
+                    <input type="text" id="inp-emergency" placeholder="Contact d'urgence (Nom & Tél)" class="w-full p-3 bg-slate-50 rounded-xl border-none text-sm">
+                </div>
+
+            </div>
+            <div class="p-4 border-t bg-white pb-safe">
+                <button id="btn-save-member" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg shadow-slate-300 active:scale-[0.98] transition-transform">Valider Inscription</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Scan Résultat -->
+    <div id="modal-scan-result" class="fixed inset-0 bg-black/80 z-[60] hidden flex items-center justify-center p-6 backdrop-blur-md">
+        <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative">
+            <button onclick="closeScanResult()" class="absolute top-4 right-4 bg-slate-100 p-2 rounded-full text-slate-500"><i class="ph-bold ph-x"></i></button>
+            
+            <div class="p-6 text-center pt-10">
+                <div class="w-32 h-32 mx-auto rounded-full bg-slate-200 mb-4 border-8 border-white shadow-lg overflow-hidden relative">
+                    <img id="scan-photo" class="w-full h-full object-cover hidden">
+                    <i id="scan-icon" class="ph-fill ph-user text-6xl text-slate-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+                </div>
+                
+                <h2 id="scan-name" class="text-2xl font-black text-slate-800 leading-tight mb-1">Nom Client</h2>
+                <p id="scan-phone" class="text-slate-400 text-sm font-medium mb-4">0102030405</p>
+                
+                <div id="scan-status-box" class="bg-green-100 text-green-700 p-4 rounded-2xl mb-4 border border-green-200">
+                    <p class="text-xs font-bold uppercase opacity-70 mb-1">Statut</p>
+                    <p id="scan-status-text" class="text-xl font-black">ACCÈS AUTORISÉ</p>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2 text-left bg-slate-50 p-3 rounded-xl text-sm">
+                    <div>
+                        <p class="text-slate-400 text-xs font-bold uppercase">Info</p>
+                        <p id="scan-info" class="font-bold text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-xs font-bold uppercase">Expiration</p>
+                        <p id="scan-detail" class="font-bold text-slate-700">-</p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Content Modal -->
-            <div class="flex-1 overflow-y-auto p-5">
-                <form id="member-form" class="space-y-5">
-                    <input type="hidden" id="member-id">
-                    
-                    <!-- Photo -->
-                    <div class="flex flex-col items-center justify-center">
-                        <div class="relative w-28 h-28 bg-slate-100 rounded-full overflow-hidden border-4 border-white shadow-md group">
-                            <img id="photo-preview" class="w-full h-full object-cover hidden">
-                            <div id="photo-placeholder" class="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                                <i class="ph-fill ph-camera text-3xl"></i>
-                            </div>
-                            <!-- Input File avec Capture Camera -->
-                            <input type="file" id="member-photo-input" accept="image/*" capture="environment" class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                        </div>
-                        <p class="text-xs text-blue-600 font-bold mt-2">Appuyer pour photo</p>
-                    </div>
-
-                    <div class="space-y-3">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Identité</h3>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="member-firstname" placeholder="Prénom" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
-                            <input type="text" id="member-lastname" placeholder="Nom" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
-                        </div>
-                        <input type="tel" id="member-phone" placeholder="Téléphone" class="p-3 bg-slate-50 rounded-xl border-none w-full" required>
-                        <input type="text" id="member-address" placeholder="Lieu de résidence" class="p-3 bg-slate-50 rounded-xl border-none w-full">
-                    </div>
-
-                    <div class="space-y-3">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Santé & Urgence</h3>
-                        <textarea id="member-medical" placeholder="Antécédents médicaux, allergies..." class="p-3 bg-slate-50 rounded-xl border-none w-full h-20 text-sm"></textarea>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" id="member-emergency-name" placeholder="Contact urgence" class="p-3 bg-slate-50 rounded-xl border-none w-full text-sm">
-                            <input type="tel" id="member-emergency-phone" placeholder="Tél urgence" class="p-3 bg-slate-50 rounded-xl border-none w-full text-sm">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-3">
-                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b pb-1">Abonnement</h3>
-                         <div class="flex bg-slate-100 p-1 rounded-xl">
-                            <button type="button" id="type-subscription" class="flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all">Mois</button>
-                            <button type="button" id="type-session" class="flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50">Séances</button>
-                        </div>
-                        <input type="hidden" id="member-type" value="subscription">
-                        
-                        <div id="subscription-fields">
-                            <input type="number" id="subscription-duration" placeholder="Durée (mois)" class="p-3 bg-white border-2 border-blue-100 rounded-xl w-full">
-                        </div>
-                        <div id="session-fields" class="hidden">
-                            <input type="number" id="session-count" placeholder="Nombre de séances" class="p-3 bg-white border-2 border-blue-100 rounded-xl w-full">
-                        </div>
-                        
-                        <div class="pt-2">
-                            <label class="text-xs font-bold text-slate-500 ml-1">Montant Payé</label>
-                            <input type="number" id="member-amount" placeholder="0 FCFA" class="p-3 bg-green-50 border border-green-100 text-green-800 font-bold rounded-xl w-full">
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Footer Modal -->
-            <div class="p-4 border-t bg-white shrink-0 pb-safe-bottom">
-                <button id="save-member-btn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-200 active:scale-95 transition-transform flex items-center justify-center">
-                    <span>Enregistrer</span>
-                    <i id="btn-spinner" class="ph-bold ph-circle-notch animate-spin ml-2 hidden"></i>
-                </button>
+            <div class="p-4 bg-slate-50 border-t">
+                <button onclick="closeScanResult()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-blue-200">OK, Suivant</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal Détail Membre -->
-    <div id="view-member-modal" class="fixed inset-0 bg-black/50 z-50 hidden items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
-        <div class="bg-white w-full h-[90vh] sm:h-auto sm:max-w-md rounded-t-3xl sm:rounded-2xl flex flex-col overflow-hidden">
-            <div class="px-4 py-3 border-b flex justify-between items-center bg-slate-50 shrink-0">
-                <button id="close-view-modal" class="text-slate-500 font-bold text-sm flex items-center"><i class="ph-bold ph-arrow-left text-lg mr-1"></i> Retour</button>
-                <div class="flex gap-2">
-                    <button id="share-whatsapp-btn" class="text-green-600 bg-green-100 p-2 rounded-full"><i class="ph-fill ph-whatsapp-logo text-xl"></i></button>
-                    <button id="delete-member-btn" class="text-red-600 bg-red-100 p-2 rounded-full"><i class="ph-bold ph-trash text-xl"></i></button>
-                </div>
-            </div>
-            <div id="view-member-content" class="flex-1 overflow-y-auto p-5 space-y-6"></div>
-        </div>
-    </div>
-    
-    <!-- Modal Ajout Charge -->
-    <div id="charge-modal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-            <h3 class="text-lg font-bold mb-4">Ajouter une Charge</h3>
-            <div class="space-y-4">
-                <input type="text" id="charge-desc-input" placeholder="Description (ex: Loyer)" class="w-full p-3 bg-slate-50 rounded-xl border-none">
-                <input type="number" id="charge-amount-input" placeholder="Montant (FCFA)" class="w-full p-3 bg-slate-50 rounded-xl border-none font-bold text-red-600">
-                <div class="flex gap-3 pt-2">
-                    <button id="cancel-charge-btn" class="flex-1 py-3 rounded-xl font-bold text-slate-500 bg-slate-100">Annuler</button>
-                    <button id="confirm-charge-btn" class="flex-1 py-3 rounded-xl font-bold text-white bg-red-600">Valider</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Modal Vue Détail -->
+    <div id="modal-view-member" class="fixed inset-0 bg-black/50 z-50 hidden flex items-end sm:items-center justify-center backdrop-blur-sm">
+        <div class="bg-white w-full h-[85vh] sm:h-auto sm:max-w-md rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden">
+             <div class="bg-slate-800 text-white p-6 pb-10 rounded-b-[2rem] relative shrink-0">
+                 <div class="flex justify-between items-start mb-4">
+                     <button onclick="closeViewMember()" class="bg-white/20 p-2 rounded-full hover:bg-white/30"><i class="ph-bold ph-arrow-left"></i></button>
+                     <div class="flex gap-2">
+                         <button id="btn-share-wa" class="bg-green-500 p-2 rounded-full shadow-lg"><i class="ph-fill ph-whatsapp-logo text-lg"></i></button>
+                         <button id="btn-delete-member" class="bg-red-500 p-2 rounded-full shadow-lg"><i class="ph-bold ph-trash text-lg"></i></button>
+                     </div>
+                 </div>
+                 <div class="flex items-center gap-4">
+                     <div class="w-20 h-20 rounded-full bg-white/10 border-2 border-white/30 overflow-hidden shrink-0">
+                         <img id="view-photo" class="w-full h-full object-cover hidden">
+                         <div id="view-icon" class="w-full h-full flex items-center justify-center"><i class="ph-fill ph-user text-4xl text-white/50"></i></div>
+                     </div>
+                     <div>
+                         <h2 id="view-name" class="text-2xl font-bold leading-tight">Nom Prénom</h2>
+                         <p id="view-phone" class="text-slate-400 font-medium">Tél</p>
+                     </div>
+                 </div>
+             </div>
+             
+             <div class="flex-1 overflow-y-auto p-6 -mt-6">
+                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 mb-4">
+                     <div class="flex justify-between items-center mb-2">
+                         <span class="text-xs font-bold text-slate-400 uppercase">Abonnement Actuel</span>
+                         <span id="view-status-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">ACTIF</span>
+                     </div>
+                     <p id="view-subscription-detail" class="text-xl font-black text-slate-800">1 Mois</p>
+                     <p id="view-subscription-date" class="text-sm text-slate-500">Fin le 12/12/2024</p>
+                 </div>
+                 
+                 <div class="space-y-2 text-sm text-slate-600 bg-slate-50 p-4 rounded-2xl mb-4">
+                     <p><i class="ph-bold ph-map-pin mr-2 text-slate-400"></i> <span id="view-address">-</span></p>
+                     <p><i class="ph-bold ph-first-aid mr-2 text-red-400"></i> <span id="view-medical">-</span></p>
+                     <p><i class="ph-bold ph-phone-call mr-2 text-orange-400"></i> <span id="view-emergency">-</span></p>
+                 </div>
 
-    <!-- Scanner & Kiosk -->
-    <div id="kiosk-view" class="fixed inset-0 bg-slate-900 z-[100] hidden flex flex-col">
-        <div class="p-4 flex justify-between items-center">
-            <h2 class="text-white font-bold">Mode Kiosque</h2>
-            <button id="close-kiosk-button" class="text-white bg-white/20 p-2 rounded-lg"><i class="ph-bold ph-x"></i></button>
-        </div>
-        <div class="flex-1 flex flex-col items-center justify-center p-4">
-             <div id="kiosk-reader" class="w-full max-w-sm aspect-square bg-black rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-700"></div>
-             <div id="kiosk-message" class="mt-8 text-center h-24">
-                 <p class="text-2xl font-bold text-white"></p>
-                 <p class="text-lg text-slate-300"></p>
+                 <button id="btn-renew" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-200 mb-2">Renouveler / Convertir</button>
+                 <button id="btn-show-qr" class="w-full bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-bold">Voir QR Code</button>
              </div>
         </div>
     </div>
 
-    <div id="qr-scanner-modal" class="fixed inset-0 bg-black/90 z-[100] hidden flex flex-col p-4">
-        <div class="flex justify-end"><button id="close-scanner-button" class="text-white p-2"><i class="ph-bold ph-x text-3xl"></i></button></div>
-        <div class="flex-1 flex items-center justify-center">
-            <div id="qr-reader" class="w-full max-w-sm bg-black rounded-2xl overflow-hidden border-2 border-white"></div>
+    <!-- Scanner Modal -->
+    <div id="modal-scanner" class="fixed inset-0 bg-black z-[100] hidden flex flex-col">
+        <div class="p-4 flex justify-between items-center text-white z-10">
+            <h2 class="font-bold text-lg">Scanner QR</h2>
+            <button onclick="stopScanner()" class="bg-white/20 p-2 rounded-full"><i class="ph-bold ph-x text-xl"></i></button>
+        </div>
+        <div id="qr-reader" class="flex-1 bg-black relative"></div>
+        <p class="text-center text-white/70 pb-8 p-4 text-sm">Pointez la caméra vers le code du client</p>
+    </div>
+
+    <!-- Modal Charge -->
+    <div id="modal-charge" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-6 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl fade-in">
+            <h3 class="font-bold text-lg mb-4">Ajouter une dépense</h3>
+            <input type="text" id="charge-desc" placeholder="Motif (ex: Facture Eau)" class="w-full p-3 bg-slate-50 rounded-xl mb-3 border-none">
+            <input type="number" id="charge-amount" placeholder="Montant (FCFA)" class="w-full p-3 bg-slate-50 rounded-xl mb-5 border-none font-bold text-red-600">
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('modal-charge').classList.add('hidden')" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Annuler</button>
+                <button onclick="saveCharge()" class="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg shadow-red-200">Valider</button>
+            </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- LOGIQUE JS -->
     <script>
-        // --- CONFIGURATION ---
-        const DB_KEY = 'fittrack_local_mobile_v2';
-        const SUPERVISOR_PIN = "5008";
-
+        // --- CONFIG ---
+        const DB_KEY = 'fittrack_pro_v1';
+        const PIN_CODE = "5008";
+        
         // --- STATE ---
-        let db = { members: [], payments: [], charges: [], sessions: [], config: { gymName: "FIT TRACK" } };
-        let currentUser = null; // 'manager' | 'owner'
+        let db = { 
+            members: [], 
+            finance: [], 
+            sessions: [], 
+            config: { name: "FIT TRACK" } 
+        };
         let html5QrCode = null;
-        let isKioskMode = false;
-        let currentFilter = 'all';
+        let currentPin = "";
+        let currentMemberId = null;
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
-            checkSession();
-            setupEvents();
-            // Fix date input IOS
-            document.getElementById('session-date-filter').valueAsDate = new Date();
+            // Si pas de données, on reste sur login. Sinon on pourrait auto-login si session persistante (optionnel)
+            setupPinPad();
+            setupAppEvents();
+            refreshUI();
         });
 
         function loadData() {
             const saved = localStorage.getItem(DB_KEY);
-            if (saved) {
+            if(saved) {
                 try {
-                    db = JSON.parse(saved);
-                    if(!db.members) db.members = [];
-                    if(!db.payments) db.payments = [];
-                    if(!db.charges) db.charges = [];
-                    if(!db.sessions) db.sessions = [];
-                } catch(e) { console.error("Corrupt data"); }
+                    const parsed = JSON.parse(saved);
+                    db = { ...db, ...parsed }; // Merge pour éviter perte si structure change
+                } catch(e) { console.error("Err Data"); }
             }
         }
 
         function saveData() {
-            try {
-                localStorage.setItem(DB_KEY, JSON.stringify(db));
-                updateDashboard();
-            } catch (e) {
-                alert("Mémoire pleine ! Veuillez supprimer d'anciennes données ou les photos.");
-            }
+            localStorage.setItem(DB_KEY, JSON.stringify(db));
+            refreshUI();
         }
 
-        function checkSession() {
-            const user = sessionStorage.getItem('ft_user');
-            if(user) login(user);
-            else showScreen('login');
-        }
-
-        // --- NAVIGATION ---
-        function showScreen(id) {
-            document.getElementById('login-view').classList.toggle('hidden', id !== 'login');
-            document.getElementById('main-view').classList.toggle('hidden', id !== 'main');
-        }
-
-        function switchTab(tabId) {
-            ['dashboard', 'members', 'finance', 'sessions', 'settings'].forEach(t => {
-                document.getElementById(`${t}-section`).classList.toggle('hidden', t !== tabId);
-            });
-            
-            // Update Bottom Bar Active State
-            document.querySelectorAll('.nav-button').forEach(btn => {
-                const active = btn.dataset.view === tabId;
-                const icon = btn.querySelector('i');
-                icon.className = active ? `ph-fill ${icon.className.split(' ')[1]} text-2xl mb-0.5` : `ph-bold ${icon.className.split(' ')[1]} text-2xl mb-0.5`;
-                btn.className = `nav-button flex-1 h-full flex flex-col items-center justify-center ${active ? 'text-blue-600' : 'text-slate-400'}`;
-            });
-        }
-
-        function login(role) {
-            currentUser = role;
-            sessionStorage.setItem('ft_user', role);
-            showScreen('main');
-            document.getElementById('user-role-badge').textContent = role === 'owner' ? 'PROPRIO' : 'GÉRANT';
-            document.getElementById('app-title-main').textContent = db.config.gymName;
-            updateDashboard();
-            renderMembers();
-            renderFinance();
-            switchTab(role === 'owner' ? 'dashboard' : 'members');
-        }
-
-        function logout() {
-            currentUser = null;
-            sessionStorage.removeItem('ft_user');
-            showScreen('login');
-        }
-
-        // --- EVENTS ---
-        function setupEvents() {
-            // Login Logic
-            document.getElementById('manager-tab').onclick = () => setLoginMode('manager');
-            document.getElementById('consultation-tab').onclick = () => setLoginMode('consultation');
-            document.getElementById('kiosk-tab').onclick = () => startKioskMode();
-
-            document.getElementById('login-button').onclick = () => {
-                if(document.getElementById('email-input').value === 'admin' && document.getElementById('password-input').value === 'admin') login('manager');
-                else alert('Admin / Admin');
-            };
-            document.getElementById('consultation-login-button').onclick = () => {
-                if(document.getElementById('consultation-pin-input').value === SUPERVISOR_PIN) login('owner');
-                else alert('Code incorrect');
-            };
-            document.getElementById('logout-button').onclick = logout;
-
-            // Nav Logic
-            document.querySelectorAll('.nav-button').forEach(b => b.onclick = () => switchTab(b.dataset.view));
-
-            // Members Logic
-            document.getElementById('add-member-button').onclick = openAddMemberModal;
-            document.querySelector('#member-modal .close-modal').onclick = () => document.getElementById('member-modal').classList.add('hidden');
-            document.getElementById('type-subscription').onclick = () => setMemberType('subscription');
-            document.getElementById('type-session').onclick = () => setMemberType('session');
-            document.getElementById('member-photo-input').onchange = handlePhotoPreview;
-            document.getElementById('save-member-btn').onclick = handleMemberSubmit;
-            document.getElementById('search-input').oninput = (e) => renderMembers(e.target.value);
-            
-            // Member View Logic
-            document.getElementById('close-view-modal').onclick = () => document.getElementById('view-member-modal').classList.add('hidden');
-            document.getElementById('delete-member-btn').onclick = deleteCurrentMember;
-            document.getElementById('share-whatsapp-btn').onclick = shareOnWhatsApp;
-
-            // Filters
-            document.querySelectorAll('.filter-btn').forEach(b => b.onclick = (e) => {
-                document.querySelectorAll('.filter-btn').forEach(x => x.className = "filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-white text-slate-600 border whitespace-nowrap");
-                e.target.className = "filter-btn px-4 py-1.5 rounded-full text-sm font-bold bg-slate-800 text-white whitespace-nowrap";
-                currentFilter = e.target.dataset.filter;
-                renderMembers();
-            });
-
-            // QR
-            document.getElementById('scan-qr-button').onclick = () => startQrScanner(false);
-            document.getElementById('close-scanner-button').onclick = stopQrScanner;
-            document.getElementById('close-kiosk-button').onclick = stopKioskMode;
-
-            // Finance / Charges
-            document.getElementById('add-charge-button').onclick = () => document.getElementById('charge-modal').classList.remove('hidden');
-            document.getElementById('cancel-charge-btn').onclick = () => document.getElementById('charge-modal').classList.add('hidden');
-            document.getElementById('confirm-charge-btn').onclick = handleAddCharge;
-            document.getElementById('download-report-button').onclick = downloadCSV;
-
-            // Data
-            document.getElementById('save-settings-button').onclick = () => {
-                db.config.gymName = document.getElementById('gym-name-input').value || "FIT TRACK";
-                saveData();
-                document.getElementById('app-title-main').textContent = db.config.gymName;
-                alert("Enregistré");
-            };
-            document.getElementById('reset-app-button').onclick = () => {
-                if(confirm("TOUT EFFACER ?")) { localStorage.removeItem(DB_KEY); location.reload(); }
-            };
-            
-            // JSON
-            document.getElementById('export-json-btn').onclick = exportJSON;
-            document.getElementById('import-json-btn').onclick = () => document.getElementById('import-json-input').click();
-            document.getElementById('import-json-input').onchange = importJSON;
-            document.getElementById('import-data-login-btn').onclick = () => document.getElementById('file-import-input-login').click();
-            document.getElementById('file-import-input-login').onchange = importJSON;
-        }
-
-        function setLoginMode(mode) {
-            document.getElementById('manager-login-form').classList.toggle('hidden', mode !== 'manager');
-            document.getElementById('consultation-login-form').classList.toggle('hidden', mode !== 'consultation');
-            
-            document.getElementById('manager-tab').className = mode === 'manager' ? "flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
-            document.getElementById('consultation-tab').className = mode === 'consultation' ? "flex-1 py-3 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-3 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
-        }
-
-        function setMemberType(type) {
-            document.getElementById('member-type').value = type;
-            document.getElementById('type-subscription').className = type === 'subscription' ? "flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50";
-            document.getElementById('type-session').className = type === 'session' ? "flex-1 py-2 rounded-lg text-sm font-bold shadow bg-white text-blue-600 transition-all" : "flex-1 py-2 rounded-lg text-sm font-bold text-slate-500 hover:bg-white/50";
-            
-            document.getElementById('subscription-fields').classList.toggle('hidden', type !== 'subscription');
-            document.getElementById('session-fields').classList.toggle('hidden', type === 'session');
-        }
-
-        // --- PHOTO COMPRESSION ---
-        function handlePhotoPreview(e) {
-            const file = e.target.files[0];
-            if(!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const img = new Image();
-                img.src = evt.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 400;
-                    const scale = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
-                    canvas.height = img.height * scale;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    const compressed = canvas.toDataURL('image/jpeg', 0.7);
-                    document.getElementById('photo-preview').src = compressed;
-                    document.getElementById('photo-preview').classList.remove('hidden');
-                    document.getElementById('photo-placeholder').classList.add('hidden');
+        // --- AUTHENTICATION (PIN) ---
+        function setupPinPad() {
+            document.querySelectorAll('.pin-btn').forEach(btn => {
+                btn.onclick = () => {
+                    if(currentPin.length < 4) {
+                        currentPin += btn.dataset.val;
+                        updatePinDots();
+                        if(currentPin.length === 4) checkPin();
+                    }
                 };
+            });
+            document.getElementById('clear-pin').onclick = () => {
+                currentPin = currentPin.slice(0, -1);
+                updatePinDots();
             };
-            reader.readAsDataURL(file);
+            // Restauration au login
+            document.getElementById('restore-btn').onclick = () => document.getElementById('restore-file-input').click();
+            document.getElementById('restore-file-input').onchange = importJSON;
+            
+            // Kiosque rapide
+            document.getElementById('open-kiosk-btn').onclick = () => {
+                document.getElementById('login-view').classList.add('hidden');
+                startScanner(true); // True = Kiosk mode (boucle)
+            };
         }
 
-        // --- MEMBERS CRUD ---
-        async function handleMemberSubmit(e) {
-            e.preventDefault();
-            
-            // Validate basic fields
-            if(!document.getElementById('member-firstname').value || !document.getElementById('member-lastname').value) {
-                alert("Nom et Prénom obligatoires");
-                return;
-            }
+        function updatePinDots() {
+            const dots = document.querySelectorAll('.pin-dot');
+            dots.forEach((dot, i) => {
+                dot.className = `w-4 h-4 rounded-full transition-all duration-200 ${i < currentPin.length ? 'bg-blue-500 scale-110' : 'bg-slate-700'}`;
+            });
+        }
 
-            const btn = document.getElementById('save-member-btn');
-            const spinner = document.getElementById('btn-spinner');
-            btn.disabled = true; spinner.classList.remove('hidden');
-
-            // Delay for UI refresh
+        function checkPin() {
             setTimeout(() => {
-                const id = document.getElementById('member-id').value || Date.now().toString();
-                const isNew = !document.getElementById('member-id').value;
-                const photoSrc = document.getElementById('photo-preview').src;
-                
-                let member = isNew ? { id, createdAt: new Date().toISOString(), status: 'actif' } : db.members.find(m => m.id === id);
-                
-                member.firstname = document.getElementById('member-firstname').value;
-                member.lastname = document.getElementById('member-lastname').value;
-                member.phone = document.getElementById('member-phone').value;
-                member.address = document.getElementById('member-address').value; // New
-                member.medical = document.getElementById('member-medical').value; // New
-                member.emergencyName = document.getElementById('member-emergency-name').value; // New
-                member.emergencyPhone = document.getElementById('member-emergency-phone').value; // New
-                
-                // Photo : only update if new photo set
-                if (!document.getElementById('photo-preview').classList.contains('hidden')) {
-                     member.photo = photoSrc;
-                }
-
-                member.memberType = document.getElementById('member-type').value;
-                
-                // Logic Abonnement / Séances
-                if (member.memberType === 'subscription') {
-                    const duration = parseInt(document.getElementById('subscription-duration').value);
-                    if (duration > 0) {
-                        const start = (isNew || !member.endSubDate) ? new Date() : new Date(Math.max(new Date(), new Date(member.endSubDate)));
-                        start.setMonth(start.getMonth() + duration);
-                        member.endSubDate = start.toISOString();
-                    }
+                if(currentPin === PIN_CODE) {
+                    document.getElementById('login-view').classList.add('hidden');
+                    document.getElementById('main-view').classList.remove('hidden');
+                    document.getElementById('app-title-display').textContent = db.config.name;
+                    currentPin = "";
+                    updatePinDots();
                 } else {
-                    const count = parseInt(document.getElementById('session-count').value);
-                    if (count > 0) {
-                        member.sessionsLeft = (member.sessionsLeft || 0) + count;
-                    }
+                    navigator.vibrate?.(200);
+                    currentPin = "";
+                    updatePinDots();
+                    alert("Code Erroné");
                 }
-
-                // Payment
-                const amount = parseFloat(document.getElementById('member-amount').value);
-                if (amount > 0) {
-                    db.payments.push({
-                        id: Date.now().toString(),
-                        memberId: id,
-                        desc: isNew ? "Nouvelle Adhésion" : "Renouvellement",
-                        amount: amount,
-                        date: new Date().toISOString()
-                    });
-                }
-
-                if(isNew) db.members.push(member);
-                
-                saveData();
-                document.getElementById('member-modal').classList.add('hidden');
-                renderMembers();
-                
-                btn.disabled = false; spinner.classList.add('hidden');
             }, 100);
         }
 
-        function openAddMemberModal() {
-            document.getElementById('member-form').reset();
-            document.getElementById('member-id').value = '';
-            document.getElementById('photo-preview').src = '';
-            document.getElementById('photo-preview').classList.add('hidden');
-            document.getElementById('photo-placeholder').classList.remove('hidden');
-            document.getElementById('member-modal').classList.remove('hidden');
-        }
-
-        let currentViewMemberId = null;
-
-        function showMemberDetails(m) {
-            currentViewMemberId = m.id;
-            const s = getStatus(m);
-            const container = document.getElementById('view-member-content');
-            
-            container.innerHTML = `
-                <div class="text-center">
-                     <div class="w-32 h-32 mx-auto bg-slate-200 rounded-full mb-3 overflow-hidden border-4 border-white shadow-lg">
-                        ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-slate-400 text-4xl"><i class="ph-fill ph-user"></i></div>`}
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800">${m.firstname} ${m.lastname}</h3>
-                    <div class="inline-block px-3 py-1 rounded-full text-sm font-bold ${s.bg} ${s.color} mt-1">${s.label}</div>
-                    <p class="text-slate-500 text-sm mt-1">${m.phone}</p>
-                </div>
-                
-                <div class="bg-slate-50 p-4 rounded-xl space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-500">Type</span>
-                        <span class="font-bold">${m.memberType === 'subscription' ? 'Abonnement' : 'Carnet'}</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-500">${m.memberType === 'subscription' ? 'Fin le' : 'Reste'}</span>
-                        <span class="font-bold text-blue-600">${m.memberType === 'subscription' ? (m.endSubDate ? new Date(m.endSubDate).toLocaleDateString() : '-') : (m.sessionsLeft + ' séances')}</span>
-                    </div>
-                    ${m.address ? `<div class="flex justify-between text-sm"><span class="text-slate-500">Résidence</span><span class="font-bold">${m.address}</span></div>` : ''}
-                </div>
-
-                ${(m.medical || m.emergencyName) ? `
-                <div class="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <h4 class="text-red-800 font-bold text-xs uppercase mb-2">Médical & Urgence</h4>
-                    ${m.medical ? `<p class="text-sm text-red-700 mb-2"><i class="ph-bold ph-first-aid mr-1"></i> ${m.medical}</p>` : ''}
-                    ${m.emergencyName ? `<p class="text-sm text-red-700"><i class="ph-bold ph-phone mr-1"></i> ${m.emergencyName} (${m.emergencyPhone})</p>` : ''}
-                </div>` : ''}
-
-                <div class="grid grid-cols-2 gap-3 pt-2">
-                     <button onclick="renewMember('${m.id}')" class="bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200">Renouveler</button>
-                     <button onclick="showQR('${m.id}', '${m.firstname}')" class="bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg">Carte QR</button>
-                </div>
-            `;
-            document.getElementById('view-member-modal').classList.remove('hidden');
-        }
-
-        function getStatus(m) {
-            if (m.status === 'suspendu') return { label: 'Suspendu', color: 'text-slate-500', bg: 'bg-slate-200' };
-            if (m.memberType === 'subscription') {
-                if (!m.endSubDate) return { label: 'Invalide', color: 'text-red-500', bg: 'bg-red-100' };
-                const days = Math.ceil((new Date(m.endSubDate) - new Date()) / (1000 * 3600 * 24));
-                if (days < 0) return { label: 'Expiré', color: 'text-red-600', bg: 'bg-red-100' };
-                if (days <= 7) return { label: 'Fin Bientôt', color: 'text-orange-600', bg: 'bg-orange-100' };
-                return { label: 'Actif', color: 'text-green-600', bg: 'bg-green-100' };
-            } else {
-                return m.sessionsLeft > 0 ? { label: `${m.sessionsLeft} Séances`, color: 'text-blue-600', bg: 'bg-blue-100' } : { label: 'Épuisé', color: 'text-red-600', bg: 'bg-red-100' };
-            }
-        }
-
-        function renderMembers(query = '') {
-            const list = document.getElementById('member-list-container');
-            list.innerHTML = '';
-            
-            let filtered = db.members.filter(m => {
-                const txt = (m.firstname + ' ' + m.lastname + ' ' + m.phone).toLowerCase();
-                const q = query.toLowerCase();
-                
-                const s = getStatus(m);
-                let matchFilter = true;
-                if (currentFilter === 'active') matchFilter = s.color.includes('green') || s.color.includes('blue');
-                if (currentFilter === 'expiring') matchFilter = s.color.includes('orange');
-                if (currentFilter === 'expired') matchFilter = s.color.includes('red');
-
-                return txt.includes(q) && matchFilter;
+        // --- NAVIGATION & UI ---
+        function setupAppEvents() {
+            // Tabs Bottom
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.onclick = () => {
+                    // Reset styles
+                    document.querySelectorAll('.nav-item').forEach(b => {
+                        b.className = "nav-item flex-1 h-full flex flex-col items-center justify-center text-slate-400";
+                        b.querySelector('i').classList.replace('ph-fill', 'ph-bold');
+                    });
+                    // Active style
+                    btn.className = "nav-item active flex-1 h-full flex flex-col items-center justify-center text-blue-600";
+                    btn.querySelector('i').classList.replace('ph-bold', 'ph-fill');
+                    
+                    // Show Section
+                    ['dashboard', 'members', 'history', 'settings'].forEach(t => {
+                        document.getElementById(`tab-${t}`).classList.add('hidden');
+                    });
+                    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+                };
             });
 
-            filtered.sort((a,b) => a.lastname.localeCompare(b.lastname));
-
-            if(filtered.length === 0) {
-                document.getElementById('empty-state-members').classList.remove('hidden');
-            } else {
-                document.getElementById('empty-state-members').classList.add('hidden');
-                filtered.forEach(m => {
-                    const s = getStatus(m);
-                    const div = document.createElement('div');
-                    div.className = "bg-white p-3 rounded-xl flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform";
-                    div.innerHTML = `
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <div class="w-12 h-12 rounded-full bg-slate-100 shrink-0 overflow-hidden">
-                                ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-slate-300"><i class="ph-fill ph-user text-xl"></i></div>`}
-                            </div>
-                            <div class="min-w-0">
-                                <p class="font-bold text-slate-800 truncate">${m.firstname} ${m.lastname}</p>
-                                <p class="text-xs text-slate-400">${m.phone}</p>
-                            </div>
-                        </div>
-                        <div class="text-right shrink-0 pl-2">
-                            <span class="text-xs font-bold px-2 py-1 rounded-full ${s.bg} ${s.color}">${s.label}</span>
-                        </div>
-                    `;
-                    div.onclick = () => showMemberDetails(m);
-                    list.appendChild(div);
-                });
-            }
-        }
-
-        function renewMember(id) {
-            document.getElementById('view-member-modal').classList.add('hidden');
-            openAddMemberModal();
+            // Actions Dashboard
+            document.getElementById('nav-add-member').onclick = () => openMemberModal();
+            document.getElementById('nav-add-charge').onclick = () => document.getElementById('modal-charge').classList.remove('hidden');
             
-            // Prefill logic would go here, simpler to just open blank or implement edit logic
-            // For simplicity in this version, we just tell user to edit. 
-            // Or better: We find the member and populate the modal.
-            const m = db.members.find(x => x.id === id);
-            document.getElementById('member-id').value = m.id;
-            document.getElementById('member-firstname').value = m.firstname;
-            document.getElementById('member-lastname').value = m.lastname;
-            document.getElementById('member-phone').value = m.phone;
-            document.getElementById('member-address').value = m.address || '';
-            document.getElementById('member-medical').value = m.medical || '';
-            document.getElementById('member-emergency-name').value = m.emergencyName || '';
-            document.getElementById('member-emergency-phone').value = m.emergencyPhone || '';
-            if(m.photo) {
-                document.getElementById('photo-preview').src = m.photo;
-                document.getElementById('photo-preview').classList.remove('hidden');
-                document.getElementById('photo-placeholder').classList.add('hidden');
-            }
-            setMemberType(m.memberType);
-        }
+            // Scanner
+            document.getElementById('main-scan-btn').onclick = () => startScanner(false);
 
-        function deleteCurrentMember() {
-            if(confirm("Supprimer définitivement ce client ?")) {
-                db.members = db.members.filter(m => m.id !== currentViewMemberId);
+            // Logout
+            document.getElementById('logout-btn').onclick = () => {
+                document.getElementById('main-view').classList.add('hidden');
+                document.getElementById('login-view').classList.remove('hidden');
+            };
+
+            // Members Filter
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.onclick = (e) => {
+                    document.querySelectorAll('.filter-chip').forEach(c => {
+                        c.classList.remove('bg-slate-800', 'text-white');
+                        c.classList.add('bg-white', 'text-slate-600', 'border');
+                    });
+                    e.target.classList.remove('bg-white', 'text-slate-600', 'border');
+                    e.target.classList.add('bg-slate-800', 'text-white');
+                    renderMembers(e.target.dataset.f, document.getElementById('search-member').value);
+                };
+            });
+            document.getElementById('search-member').oninput = (e) => {
+                const activeFilter = document.querySelector('.filter-chip.bg-slate-800').dataset.f;
+                renderMembers(activeFilter, e.target.value);
+            };
+
+            // Member Form
+            document.querySelector('#modal-member .close-modal').onclick = () => document.getElementById('modal-member').classList.add('hidden');
+            document.getElementById('btn-type-sub').onclick = () => setSubMode('subscription');
+            document.getElementById('btn-type-sess').onclick = () => setSubMode('session');
+            document.getElementById('inp-photo').onchange = handlePhoto;
+            document.getElementById('btn-save-member').onclick = saveMember;
+
+            // Settings
+            document.getElementById('save-config-btn').onclick = () => {
+                db.config.name = document.getElementById('config-gym-name').value;
                 saveData();
-                document.getElementById('view-member-modal').classList.add('hidden');
-                renderMembers();
+                document.getElementById('app-title-display').textContent = db.config.name;
+                alert("Nom enregistré");
+            };
+            document.getElementById('backup-json-btn').onclick = exportJSON;
+            document.getElementById('export-csv-btn').onclick = exportCSV;
+            document.getElementById('reset-data-btn').onclick = () => {
+                if(confirm("CODE 5008 REQUIS : Voulez-vous tout effacer ?")) {
+                    const p = prompt("Confirmez le code :");
+                    if(p === PIN_CODE) { localStorage.removeItem(DB_KEY); location.reload(); }
+                }
+            };
+        }
+
+        function refreshUI() {
+            renderDashboard();
+            renderMembers('all');
+            renderHistory();
+            document.getElementById('config-gym-name').value = db.config.name;
+        }
+
+        // --- MEMBERS LOGIC ---
+        function openMemberModal(memberId = null) {
+            // Reset Form
+            document.getElementById('inp-id').value = "";
+            document.getElementById('inp-firstname').value = "";
+            document.getElementById('inp-lastname').value = "";
+            document.getElementById('inp-phone').value = "";
+            document.getElementById('inp-address').value = "";
+            document.getElementById('inp-medical').value = "";
+            document.getElementById('inp-emergency').value = "";
+            document.getElementById('inp-photo').value = "";
+            document.getElementById('inp-photo-preview').classList.add('hidden');
+            document.getElementById('inp-photo-placeholder').classList.remove('hidden');
+            document.getElementById('inp-amount').value = "";
+            
+            // Default mode
+            setSubMode('subscription');
+
+            if(memberId) {
+                // Edit Mode (Pre-fill)
+                const m = db.members.find(x => x.id === memberId);
+                if(m) {
+                    document.getElementById('modal-member-title').textContent = "Modifier / Renouveler";
+                    document.getElementById('inp-id').value = m.id;
+                    document.getElementById('inp-firstname').value = m.firstname;
+                    document.getElementById('inp-lastname').value = m.lastname;
+                    document.getElementById('inp-phone').value = m.phone;
+                    document.getElementById('inp-address').value = m.address || "";
+                    document.getElementById('inp-medical').value = m.medical || "";
+                    document.getElementById('inp-emergency').value = m.emergency || "";
+                    
+                    if(m.photo) {
+                        document.getElementById('inp-photo-preview').src = m.photo;
+                        document.getElementById('inp-photo-preview').classList.remove('hidden');
+                        document.getElementById('inp-photo-placeholder').classList.add('hidden');
+                    }
+                    
+                    // On garde le type existant pour l'édition
+                    setSubMode(m.type);
+                }
+            } else {
+                document.getElementById('modal-member-title').textContent = "Nouveau Client";
+            }
+
+            document.getElementById('modal-member').classList.remove('hidden');
+        }
+
+        function setSubMode(mode) {
+            document.getElementById('inp-type').value = mode;
+            if(mode === 'subscription') {
+                document.getElementById('btn-type-sub').className = "flex-1 py-2 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all";
+                document.getElementById('btn-type-sess').className = "flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
+                document.getElementById('block-sub').classList.remove('hidden');
+                document.getElementById('block-sess').classList.add('hidden');
+            } else {
+                document.getElementById('btn-type-sub').className = "flex-1 py-2 rounded-md text-sm font-bold text-slate-500 hover:bg-white/50 transition-all";
+                document.getElementById('btn-type-sess').className = "flex-1 py-2 rounded-md text-sm font-bold shadow bg-white text-blue-600 transition-all";
+                document.getElementById('block-sub').classList.add('hidden');
+                document.getElementById('block-sess').classList.remove('hidden');
+            }
+        }
+        
+        // Helpers for buttons
+        window.setDuration = (m) => document.getElementById('inp-duration').value = m;
+        window.setSessions = (s) => document.getElementById('inp-sessions').value = s;
+
+        function handlePhoto(e) {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const img = new Image();
+                    img.src = evt.target.result;
+                    img.onload = () => {
+                        const c = document.createElement('canvas');
+                        const scale = 300 / img.width; // Resize to 300px width
+                        c.width = 300;
+                        c.height = img.height * scale;
+                        const ctx = c.getContext('2d');
+                        ctx.drawImage(img, 0, 0, c.width, c.height);
+                        const res = c.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('inp-photo-preview').src = res;
+                        document.getElementById('inp-photo-preview').classList.remove('hidden');
+                        document.getElementById('inp-photo-placeholder').classList.add('hidden');
+                    };
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        function shareOnWhatsApp() {
-            const m = db.members.find(x => x.id === currentViewMemberId);
-            if(!m) return;
+        function saveMember() {
+            const id = document.getElementById('inp-id').value || Date.now().toString();
+            const isNew = !db.members.find(m => m.id === id);
+            const type = document.getElementById('inp-type').value;
+            
+            if(!document.getElementById('inp-lastname').value) return alert("Nom requis");
 
-            let text = `*FICHE CLIENT - ${db.config.gymName}*\n\n`;
-            text += `👤 *${m.firstname} ${m.lastname}*\n`;
-            text += `📞 ${m.phone}\n`;
-            if(m.address) text += `🏠 ${m.address}\n`;
+            let member = isNew ? { id, joined: new Date().toISOString() } : db.members.find(m => m.id === id);
             
-            const s = getStatus(m);
-            text += `\n📊 Statut: ${s.label}\n`;
-            
-            if(m.memberType === 'subscription' && m.endSubDate) {
-                text += `📅 Fin: ${new Date(m.endSubDate).toLocaleDateString()}\n`;
-            } else if(m.memberType === 'session') {
-                text += `🎫 Reste: ${m.sessionsLeft} séances\n`;
+            // Basic Info
+            member.firstname = document.getElementById('inp-firstname').value;
+            member.lastname = document.getElementById('inp-lastname').value;
+            member.phone = document.getElementById('inp-phone').value;
+            member.address = document.getElementById('inp-address').value;
+            member.medical = document.getElementById('inp-medical').value;
+            member.emergency = document.getElementById('inp-emergency').value;
+            member.type = type;
+
+            // Photo
+            if(!document.getElementById('inp-photo-preview').classList.contains('hidden')) {
+                member.photo = document.getElementById('inp-photo-preview').src;
             }
 
-            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-            window.open(url, '_blank');
-        }
-
-        function showQR(id, name) {
-             const win = window.open("", "Carte", "width=350,height=500");
-             win.document.write(`
-                <html><body style="font-family:sans-serif; text-align:center; padding:20px;">
-                    <h2 style="margin:0">${db.config.gymName}</h2>
-                    <h1 style="font-size:24px; margin:10px 0;">${name}</h1>
-                    <div id="qrcode" style="display:flex;justify-content:center;margin:20px 0;"></div>
-                    <p style="color:#666">ID: ${id.substring(0,8)}...</p>
-                    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
-                    <script>new QRCode(document.getElementById("qrcode"), {text:"${id}", width:200, height:200});<\/script>
-                </body></html>
-             `);
-        }
-
-        // --- FINANCE ---
-        function handleAddCharge() {
-            const desc = document.getElementById('charge-desc-input').value;
-            const amount = parseFloat(document.getElementById('charge-amount-input').value);
+            // Sub Logic
+            const amount = parseFloat(document.getElementById('inp-amount').value) || 0;
             
-            if(desc && amount > 0) {
-                db.charges.push({
+            if(type === 'subscription') {
+                const dur = parseInt(document.getElementById('inp-duration').value);
+                if(dur > 0) {
+                    const baseDate = (member.end && new Date(member.end) > new Date()) ? new Date(member.end) : new Date();
+                    baseDate.setMonth(baseDate.getMonth() + dur);
+                    member.end = baseDate.toISOString();
+                    // Convert from session if needed: Remove session fields
+                    delete member.sessionsTotal;
+                    delete member.sessionsLeft;
+                }
+            } else {
+                const sess = parseInt(document.getElementById('inp-sessions').value);
+                if(sess > 0) {
+                    // Logic Carnet: Si conversion ou ajout
+                    member.sessionsTotal = (member.sessionsTotal || 0) + sess; // Cumul pour stats
+                    member.sessionsLeft = (member.sessionsLeft || 0) + sess;
+                    // Remove sub fields
+                    delete member.end;
+                }
+            }
+
+            // Finance Log
+            if(amount > 0) {
+                db.finance.push({
                     id: Date.now().toString(),
-                    desc,
-                    amount,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    type: 'in',
+                    desc: `${member.firstname} ${member.lastname} (${type === 'subscription' ? 'Abo' : 'Carnet'})`,
+                    amount: amount
                 });
-                saveData();
-                renderFinance();
-                document.getElementById('charge-modal').classList.add('hidden');
-                document.getElementById('charge-desc-input').value = '';
-                document.getElementById('charge-amount-input').value = '';
+            }
+
+            if(isNew) db.members.push(member);
+            saveData();
+            document.getElementById('modal-member').classList.add('hidden');
+        }
+
+        // --- RENDERERS ---
+        function renderDashboard() {
+            let active = 0, expiring = 0, revenue = 0, expense = 0;
+            const now = new Date();
+            const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+            db.members.forEach(m => {
+                const s = getMemberStatus(m);
+                if(s.code === 'active') active++;
+                if(s.code === 'expiring') { active++; expiring++; }
+            });
+
+            db.finance.forEach(f => {
+                if(new Date(f.date) >= startMonth) {
+                    if(f.type === 'in') revenue += f.amount;
+                    else expense += f.amount;
+                }
+            });
+
+            document.getElementById('stat-active').textContent = active;
+            document.getElementById('stat-expiring').textContent = expiring;
+            document.getElementById('stat-revenue').textContent = revenue.toLocaleString('fr-FR') + ' F';
+            document.getElementById('stat-expense').textContent = expense.toLocaleString('fr-FR') + ' F';
+            document.getElementById('stat-net').textContent = (revenue - expense).toLocaleString('fr-FR') + ' F';
+        }
+
+        function getMemberStatus(m) {
+            if(m.type === 'subscription') {
+                if(!m.end) return { code: 'invalid', label: 'Invalide', color: 'red' };
+                const end = new Date(m.end);
+                const days = Math.ceil((end - new Date()) / (1000 * 3600 * 24));
+                if(days < 0) return { code: 'expired', label: 'Expiré', color: 'red' };
+                if(days <= 7) return { code: 'expiring', label: 'Fin ' + days + 'j', color: 'orange' };
+                return { code: 'active', label: 'Actif', color: 'green' };
             } else {
-                alert("Veuillez remplir les champs");
+                if(!m.sessionsLeft || m.sessionsLeft <= 0) return { code: 'expired', label: '0 Séance', color: 'red' };
+                return { code: 'active', label: m.sessionsLeft + ' Séances', color: 'blue' };
             }
         }
 
-        function renderFinance() {
-            const list = document.getElementById('financial-history-list');
-            list.innerHTML = '';
+        function renderMembers(filter, query = "") {
+            const list = document.getElementById('members-list');
+            list.innerHTML = "";
             
-            const all = [
-                ...db.payments.map(p => ({...p, type: 'in'})),
-                ...db.charges.map(c => ({...c, type: 'out'}))
-            ].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const q = query.toLowerCase();
+            const filtered = db.members.filter(m => {
+                const s = getMemberStatus(m);
+                const matchesQ = (m.firstname + " " + m.lastname).toLowerCase().includes(q);
+                
+                if(!matchesQ) return false;
+                if(filter === 'all') return true;
+                if(filter === 'active') return s.code === 'active' || s.code === 'expiring';
+                if(filter === 'session') return m.type === 'session' && s.code !== 'expired';
+                if(filter === 'expired') return s.code === 'expired';
+                return true;
+            }).sort((a,b) => a.lastname.localeCompare(b.lastname));
 
-            if(all.length === 0) {
-                document.getElementById('empty-state-finance').classList.remove('hidden');
-                return;
-            }
-            document.getElementById('empty-state-finance').classList.add('hidden');
+            filtered.forEach(m => {
+                const s = getMemberStatus(m);
+                const colorClass = s.color === 'green' ? 'bg-green-100 text-green-700' : 
+                                   s.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                   s.color === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700';
 
-            all.slice(0,50).forEach(t => {
                 const div = document.createElement('div');
-                div.className = "p-4 flex justify-between items-center";
+                div.className = "bg-white p-4 rounded-2xl flex items-center justify-between shadow-sm border border-slate-100 active:scale-[0.99] transition-transform";
+                div.onclick = () => openViewMember(m.id);
                 div.innerHTML = `
-                    <div>
-                        <p class="font-bold text-sm text-slate-800">${t.desc}</p>
-                        <p class="text-xs text-slate-400">${new Date(t.date).toLocaleDateString()}</p>
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 overflow-hidden shrink-0">
+                            ${m.photo ? `<img src="${m.photo}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center"><i class="ph-fill ph-user text-slate-300 text-xl"></i></div>`}
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-800 leading-tight">${m.firstname} ${m.lastname}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">${m.type === 'subscription' ? (m.end ? new Date(m.end).toLocaleDateString() : '-') : 'Carnet'}</p>
+                        </div>
                     </div>
-                    <div class="font-bold ${t.type === 'in' ? 'text-emerald-600' : 'text-red-600'}">
-                        ${t.type === 'in' ? '+' : '-'} ${t.amount}
+                    <div class="px-3 py-1 rounded-full text-xs font-bold ${colorClass}">
+                        ${s.label}
                     </div>
                 `;
                 list.appendChild(div);
             });
         }
 
-        // --- DASHBOARD ---
-        function updateDashboard() {
-             const now = new Date();
-             const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-             
-             let active = 0, expiring = 0, income = 0, expense = 0;
-             
-             db.members.forEach(m => {
-                 const s = getStatus(m);
-                 if(s.color.includes('green') || s.color.includes('blue')) active++;
-                 if(s.color.includes('orange')) expiring++;
-             });
-             
-             db.payments.forEach(p => { if(new Date(p.date) >= startMonth) income += p.amount; });
-             db.charges.forEach(c => { if(new Date(c.date) >= startMonth) expense += c.amount; });
-             
-             document.getElementById('db-active-members').textContent = active;
-             document.getElementById('db-expiring-soon').textContent = expiring;
-             document.getElementById('db-revenue-month').textContent = income.toLocaleString() + ' F';
-             document.getElementById('db-charges-month').textContent = expense.toLocaleString() + ' F';
-             document.getElementById('db-net-profit-month').textContent = (income - expense).toLocaleString() + ' F';
-        }
-
-        // --- QR & KIOSK ---
-        function startQrScanner(kiosk) {
-            isKioskMode = kiosk;
-            const el = kiosk ? "kiosk-view" : "qr-scanner-modal";
-            document.getElementById(el).classList.remove('hidden');
-            
-            html5QrCode = new Html5Qrcode(kiosk ? "kiosk-reader" : "qr-reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
-        }
-        
-        function stopQrScanner() {
-            if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
-            document.getElementById("qr-scanner-modal").classList.add('hidden');
-        }
-        
-        function stopKioskMode() {
-             if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
-             document.getElementById("kiosk-view").classList.add('hidden');
-             showScreen('login');
-        }
-        
-        function startKioskMode() {
-            document.getElementById("login-view").classList.add('hidden');
-            startQrScanner(true);
-        }
-
-        function onScanSuccess(id) {
-            if(!isKioskMode) stopQrScanner();
-            
+        function openViewMember(id) {
+            currentMemberId = id;
             const m = db.members.find(x => x.id === id);
-            if(!m) { showFeedback('Inconnu', 'Membre non trouvé', 'red'); return; }
+            const s = getMemberStatus(m);
+
+            document.getElementById('view-name').textContent = `${m.firstname} ${m.lastname}`;
+            document.getElementById('view-phone').textContent = m.phone;
             
-            const s = getStatus(m);
-            if(s.color.includes('red')) {
-                showFeedback(m.firstname, "REFUSÉ: " + s.label, 'red');
+            const photoEl = document.getElementById('view-photo');
+            const iconEl = document.getElementById('view-icon');
+            if(m.photo) {
+                photoEl.src = m.photo; photoEl.classList.remove('hidden'); iconEl.classList.add('hidden');
             } else {
-                // Checkin Logic
-                const openSess = db.sessions.find(x => x.memberId === id && !x.out);
-                if(openSess) {
-                    openSess.out = new Date().toISOString();
-                    showFeedback(m.firstname, "Au revoir !", "blue");
-                } else {
-                    if(m.memberType === 'session') m.sessionsLeft--;
-                    db.sessions.push({ id: Date.now().toString(), memberId: id, in: new Date().toISOString() });
-                    showFeedback(m.firstname, "Bienvenue !", "green");
-                }
-                saveData();
-                renderMembers(); // Refresh UI
+                photoEl.classList.add('hidden'); iconEl.classList.remove('hidden');
             }
+
+            // Status Badge
+            const badge = document.getElementById('view-status-badge');
+            badge.textContent = s.label.toUpperCase();
+            badge.className = `px-2 py-0.5 rounded-full text-xs font-bold ${s.color === 'green' ? 'bg-green-100 text-green-700' : s.color === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`;
+
+            // Details Sub
+            if(m.type === 'subscription') {
+                document.getElementById('view-subscription-detail').textContent = "Abonnement";
+                document.getElementById('view-subscription-date').textContent = m.end ? `Fin le : ${new Date(m.end).toLocaleDateString()}` : "Pas de date";
+            } else {
+                document.getElementById('view-subscription-detail').textContent = "Carnet Séances";
+                document.getElementById('view-subscription-date').textContent = `Solde : ${m.sessionsLeft} / ${m.sessionsTotal || '?'}`;
+            }
+
+            // Infos
+            document.getElementById('view-address').textContent = m.address || "Non renseigné";
+            document.getElementById('view-medical').textContent = m.medical || "RAS";
+            document.getElementById('view-emergency').textContent = m.emergency || "Non renseigné";
+
+            // Actions
+            document.getElementById('btn-renew').onclick = () => {
+                document.getElementById('modal-view-member').classList.add('hidden');
+                openMemberModal(id); // Opens edit/renew modal
+            };
+            
+            document.getElementById('btn-show-qr').onclick = () => {
+                const win = window.open("", "QR", "width=300,height=400");
+                win.document.write(`<html><body style="text-align:center;font-family:sans-serif"><h2>${m.firstname}</h2><div id="q"></div><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script><script>new QRCode(document.getElementById("q"), {text:"${m.id}",width:200,height:200})<\/script></body></html>`);
+            };
+            
+            document.getElementById('btn-share-wa').onclick = () => {
+                const txt = `*${db.config.name}*\nClient: ${m.firstname} ${m.lastname}\nStatut: ${s.label}\nFin: ${m.end ? new Date(m.end).toLocaleDateString() : '-'}`;
+                window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+            };
+
+            document.getElementById('btn-delete-member').onclick = () => {
+                if(confirm("ATTENTION : Supprimer ce client ?")) {
+                    const p = prompt("Code PIN de sécurité :");
+                    if(p === PIN_CODE) {
+                        db.members = db.members.filter(x => x.id !== id);
+                        saveData();
+                        document.getElementById('modal-view-member').classList.add('hidden');
+                        refreshUI();
+                    } else {
+                        alert("Code incorrect");
+                    }
+                }
+            };
+
+            document.getElementById('modal-view-member').classList.remove('hidden');
         }
         
-        function showFeedback(title, msg, color) {
-            if(isKioskMode) {
-                const el = document.getElementById('kiosk-message');
-                el.innerHTML = `<h2 class="text-3xl font-bold text-${color}-500">${title}</h2><p class="text-white">${msg}</p>`;
-                setTimeout(() => el.innerHTML = "", 3000);
-            } else {
-                alert(title + ": " + msg);
+        function closeViewMember() { document.getElementById('modal-view-member').classList.add('hidden'); }
+
+        // --- CHARGES ---
+        function saveCharge() {
+            const desc = document.getElementById('charge-desc').value;
+            const amount = parseFloat(document.getElementById('charge-amount').value);
+            if(desc && amount) {
+                db.finance.push({
+                    id: Date.now().toString(),
+                    date: new Date().toISOString(),
+                    type: 'out',
+                    desc: desc,
+                    amount: amount
+                });
+                saveData();
+                document.getElementById('modal-charge').classList.add('hidden');
             }
         }
 
-        // --- EXPORT ---
+        // --- HISTORY (PRESENCES) ---
+        function renderHistory() {
+            const list = document.getElementById('sessions-list');
+            list.innerHTML = "";
+            
+            // Group by date
+            const groups = {};
+            db.sessions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(s => {
+                const day = new Date(s.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+                if(!groups[day]) groups[day] = [];
+                groups[day].push(s);
+            });
+
+            Object.keys(groups).forEach(day => {
+                const dayHeader = document.createElement('h3');
+                dayHeader.className = "text-xs font-bold text-slate-400 uppercase tracking-wider mt-4 mb-2";
+                dayHeader.textContent = day;
+                list.appendChild(dayHeader);
+
+                groups[day].forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-3 rounded-xl border border-slate-100 flex justify-between items-center mb-2";
+                    div.innerHTML = `
+                        <span class="font-bold text-slate-700">${s.name}</span>
+                        <span class="text-sm text-slate-400 font-mono bg-slate-100 px-2 py-1 rounded-lg">${new Date(s.date).toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</span>
+                    `;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        // --- SCANNER LOGIC ---
+        function startScanner(kioskMode) {
+            document.getElementById('modal-scanner').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("qr-reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, 
+                (decodedText) => {
+                    if(!kioskMode) stopScanner();
+                    handleScanResult(decodedText);
+                }
+            );
+        }
+
+        function stopScanner() {
+            if(html5QrCode) html5QrCode.stop().then(() => html5QrCode.clear());
+            document.getElementById('modal-scanner').classList.add('hidden');
+        }
+
+        function handleScanResult(id) {
+            const m = db.members.find(x => x.id === id);
+            const modal = document.getElementById('modal-scan-result');
+            const box = document.getElementById('scan-status-box');
+            const txt = document.getElementById('scan-status-text');
+            
+            modal.classList.remove('hidden');
+
+            if(!m) {
+                document.getElementById('scan-name').textContent = "INCONNU";
+                box.className = "bg-red-100 text-red-700 p-4 rounded-2xl mb-4 border border-red-200";
+                txt.textContent = "MEMBRE INTROUVABLE";
+                return; // Stop here
+            }
+
+            // Display Info
+            document.getElementById('scan-name').textContent = `${m.firstname} ${m.lastname}`;
+            document.getElementById('scan-phone').textContent = m.phone;
+            
+            if(m.photo) {
+                document.getElementById('scan-photo').src = m.photo;
+                document.getElementById('scan-photo').classList.remove('hidden');
+                document.getElementById('scan-icon').classList.add('hidden');
+            } else {
+                document.getElementById('scan-photo').classList.add('hidden');
+                document.getElementById('scan-icon').classList.remove('hidden');
+            }
+
+            const s = getMemberStatus(m);
+            
+            // Update Logic (Décrémentation)
+            let valid = false;
+            if(s.code === 'active' || s.code === 'expiring') {
+                valid = true;
+                box.className = "bg-green-100 text-green-700 p-4 rounded-2xl mb-4 border border-green-200";
+                txt.textContent = "ACCÈS AUTORISÉ";
+                
+                // Log Session
+                db.sessions.push({
+                    id: Date.now().toString(),
+                    date: new Date().toISOString(),
+                    memberId: m.id,
+                    name: `${m.firstname} ${m.lastname}`
+                });
+
+                // Decrement if session pack
+                if(m.type === 'session') {
+                    m.sessionsLeft--;
+                    saveData(); // Save the decrement
+                }
+                saveData(); // Save the session log
+            } else {
+                box.className = "bg-red-100 text-red-700 p-4 rounded-2xl mb-4 border border-red-200";
+                txt.textContent = "ACCÈS REFUSÉ (" + s.label + ")";
+            }
+
+            // Detail texts
+            document.getElementById('scan-info').textContent = m.type === 'subscription' ? 'Abonnement' : 'Carnet';
+            if(m.type === 'subscription') {
+                document.getElementById('scan-detail').textContent = m.end ? new Date(m.end).toLocaleDateString() : 'Date invalide';
+            } else {
+                document.getElementById('scan-detail').textContent = `${m.sessionsLeft} restants`;
+            }
+            
+            refreshUI(); // Update lists
+        }
+
+        function closeScanResult() {
+            document.getElementById('modal-scan-result').classList.add('hidden');
+        }
+
+        // --- EXPORTS ---
         function exportJSON() {
-            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const date = new Date().toISOString().split('T')[0];
+            const filename = `FitTrack_Backup_${date}.json`;
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
             const a = document.createElement('a');
-            a.href = data; a.download = "backup_fittrack.json";
-            a.click();
+            a.href = dataStr; a.download = filename; a.click();
         }
-        
-        function importJSON(e) {
+
+        function exportCSV() {
+            let csv = "Annee;Mois;Jour;Date;Heure;Type;Description;Montant\n";
+            
+            // Combine payments and expenses
+            const rows = [];
+            
+            // Charges (Out)
+            db.finance.forEach(f => {
+                const d = new Date(f.date);
+                rows.push({
+                    y: d.getFullYear(),
+                    m: d.getMonth() + 1,
+                    d: d.getDate(),
+                    date: d.toLocaleDateString(),
+                    time: d.toLocaleTimeString(),
+                    type: f.type === 'in' ? 'Entree' : 'Sortie',
+                    desc: f.desc,
+                    amount: f.type === 'in' ? f.amount : -f.amount
+                });
+            });
+
+            rows.sort((a,b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+
+            rows.forEach(r => {
+                csv += `${r.y};${r.m};${r.d};${r.date};${r.time};${r.type};"${r.desc}";${r.amount}\n`;
+            });
+
+            const date = new Date().toISOString().split('T')[0];
+            const filename = `FitTrack_Rapport_${date}.csv`;
+            const uri = 'data:text/csv;charset=utf-8,' + encodeURI(csv);
+            const a = document.createElement('a');
+            a.href = uri; a.download = filename; a.click();
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
             const reader = new FileReader();
-            reader.onload = (evt) => {
-                try { db = JSON.parse(evt.target.result); saveData(); location.reload(); }
-                catch(err) { alert("Erreur fichier"); }
+            reader.onload = function(e) {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (json.members || json.finance) {
+                        db = json;
+                        saveData();
+                        alert("Données restaurées avec succès !");
+                        location.reload();
+                    } else {
+                        alert("Format de fichier invalide.");
+                    }
+                } catch (err) {
+                    alert("Erreur lors de la lecture du fichier.");
+                }
             };
-            reader.readAsText(e.target.files[0]);
-        }
-        
-        function downloadCSV() {
-            const rows = [["Date", "Type", "Desc", "Montant"]];
-            db.payments.forEach(p => rows.push([p.date, "Revenu", p.desc, p.amount]));
-            db.charges.forEach(c => rows.push([c.date, "Charge", c.desc, -c.amount]));
-            const csv = "data:text/csv;charset=utf-8," + rows.map(e => e.join(";")).join("\n");
-            const a = document.createElement('a'); a.href = encodeURI(csv); a.download = "rapport.csv"; a.click();
+            reader.readAsText(file);
         }
 
     </script>
